@@ -1,8 +1,14 @@
 # Issue・GitHub Actions 運用
 
+## 先に知っておくこと
+
+- タスクはIssue #2〜#13で管理します。
+- 招待承認前のメンバーは、Issue本文の `@メンション` で担当を確認します。
+- `dev` では通知設定を検証し、`main` へ入った後にIssueの自動メンションが有効になります。
+
 ## Issueの担当割り振り
 
-開発タスクはGitHub Issue #2〜#13に登録しています。担当・期限・完了条件は [04-roadmap-and-tasks.md](04-roadmap-and-tasks.md) と各Issueで同じ内容を確認できます。
+担当・期限・完了条件は [04-roadmap-and-tasks.md](04-roadmap-and-tasks.md) と各Issueで同じ内容を確認できます。
 
 GitHubの招待を承認するまでは、Issueの担当者欄に設定できません。承認前でも、Issue本文の `@メンション` で担当予定を確認できます。承認後、PMは各Issueの担当者欄にも同じメンバーを設定します。
 
