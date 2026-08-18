@@ -40,8 +40,10 @@ docs/team-guide
 
 ```bash
 git switch dev
-git pull origin dev
+git pull --ff-only origin dev
 ```
+
+この操作が失敗した場合は、`--force` を使ったり自分で履歴を書き換えたりせず、リーダーへ相談します。
 
 ### 2. 自分の作業ブランチを作る
 
@@ -88,7 +90,7 @@ PR の説明には、次のテンプレートを使います。
 
 ```bash
 git switch dev
-git pull origin dev
+git pull --ff-only origin dev
 ```
 
 ## コンフリクトが出たら
@@ -109,3 +111,16 @@ git pull origin dev
 - `dev` から `main` への PR を作り、変更内容を確認した。
 
 `main` に取り込んだ後、管理者はリリース・提出に使う版としてタグやデプロイを管理します。
+
+## GitHubの保護設定（管理者用）
+
+このリポジトリは個人所有のため、GitHubの標準ブランチ保護だけで「特定の1人だけが `main` を更新できる」と技術的に制限することはできません。現在は、`main` への取り込みをリポジトリ管理者（`sisicity4`）だけが行うチームルールとして運用します。
+
+`main` への取り込みは `dev` からのPRで行い、管理者が内容を確認して実施します。
+
+このルールをGitHub設定で厳密に強制したい場合は、次のどちらかをチームで選びます。
+
+1. リポジトリをOrganizationへ移し、`main` の更新権限を管理者だけに制限する。
+2. 他メンバーにはリポジトリへの書き込み権限を与えず、各自のForkからPRを出す運用に変更する。
+
+今回のように全員が `dev` から feature ブランチを切ってPushする運用では、1のOrganization移行が適しています。
