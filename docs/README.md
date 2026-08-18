@@ -1,34 +1,38 @@
-# SHUNKAN Docs
+# SHUNKAN ドキュメント
 
 SHUNKAN（瞬間）は、「この季節をどれだけ楽しめたか」を、やりたいこと・達成したこと・残り時間から振り返れる Web アプリです。
 
-このフォルダは、TechJam の6人チームが同じ前提で開発を進めるための共通資料です。特に初めてチーム開発をするメンバーでも、作業の始め方と提出方法が分かる内容にしています。
+このフォルダは、TechJam の6人チームが同じ前提で開発を進めるための共通資料です。特に初めてチーム開発をするメンバーでも、作業の始め方と提出方法が分かる内容にしています。プロジェクト全体の案内は、[ルートのREADME](../README.md) を確認してください。
 
 ## 資料一覧
 
-### [01-product-vision.md](01-product-vision.md)
+### [01-プロダクトビジョン.md](01-プロダクトビジョン.md)
 
 プロダクトの目的、利用体験、最初に作る機能を確認する資料です。
 
-### [02-development-guide.md](02-development-guide.md)
+### [02-開発ガイド.md](02-開発ガイド.md)
 
 Django / HTML・CSS を前提にした開発の進め方を確認する資料です。
 
-### [03-git-workflow.md](03-git-workflow.md)
+### [03-GitHub運用手順.md](03-GitHub運用手順.md)
 
 `dev` 起点のブランチ・PR・レビュー手順を確認する資料です。
 
-### [04-roadmap-and-tasks.md](04-roadmap-and-tasks.md)
+### [04-ロードマップとタスク.md](04-ロードマップとタスク.md)
 
 8月18日〜28日の全体スケジュールと初回担当タスクを確認する資料です。
 
-### [05-techjam-tokyo2026-requirements.md](05-techjam-tokyo2026-requirements.md)
+### [05-TechJam要件.md](05-TechJam要件.md)
 
 TechJam TOKYO 2026 の配布資料から確認した要件と運営ルールをまとめた資料です。
 
-### [06-team-availability.md](06-team-availability.md)
+### [06-チーム稼働時間.md](06-チーム稼働時間.md)
 
 チームの稼働時間をGoogleスプレッドシートで更新・確認する手順です。
+
+### [07-要件定義.md](07-要件定義.md)
+
+秒単位カウントダウン、瞬間ログ、4画面、データ項目、MVP外の共有機能を確定した資料です。
 
 ### [reference/TECHJAM-TOKYO2026.pdf](reference/TECHJAM-TOKYO2026.pdf)
 
@@ -39,10 +43,10 @@ TechJam TOKYO 2026 配布資料の原本です。
 
 初めて参加するメンバーは、次の順番で読むと作業に入りやすいです。
 
-1. [01-product-vision.md](01-product-vision.md) で、何を作るかを確認する。
-2. [04-roadmap-and-tasks.md](04-roadmap-and-tasks.md) で、自分の担当と期限を確認する。
-3. [03-git-workflow.md](03-git-workflow.md) で、ブランチ作成・PR の出し方を確認する。
-4. [02-development-guide.md](02-development-guide.md) で、実装前・PR前の確認事項を見る。
+1. [01-プロダクトビジョン.md](01-プロダクトビジョン.md) と [07-要件定義.md](07-要件定義.md) で、何を作るかを確認する。
+2. [04-ロードマップとタスク.md](04-ロードマップとタスク.md) で、自分の担当と期限を確認する。
+3. [03-GitHub運用手順.md](03-GitHub運用手順.md) で、ブランチ作成・PR の出し方を確認する。
+4. [02-開発ガイド.md](02-開発ガイド.md) で、実装前・PR前の確認事項を見る。
 
 ## 作業の基本ルール
 

@@ -41,15 +41,15 @@ docs/team-guide
 作業前に、いま自分がどのブランチにいて、未コミットの変更があるか確認します。
 
 ```bash
-git status
-git branch -vv
+git status -sb
 git remote -v
 ```
 
 見るポイントは次の3つです。
 
-- `On branch ...` または `## ...` が、現在のブランチです。
+- `## ...` が、現在のブランチです。
 - `behind` と出ている場合は、リモート側にまだ取り込んでいない変更があります。
+- `ahead` または `diverged` と出ている場合は、`dev` にローカルだけのコミットがあるため、更新せずリーダーへ相談します。
 - `??` と出ているファイルは、まだ Git 管理に入っていない新規ファイルです。
 
 未コミットの変更がある場合は、現在の作業をコミットするか、安全に退避してから次へ進みます。内容が分からない変更は削除せず、リーダーへ相談してください。変更を残したまま `git switch dev` や `git pull` を実行すると、切り替えや更新に失敗することがあります。
@@ -58,10 +58,10 @@ git remote -v
 
 ```bash
 git switch dev
-git pull origin dev
+git pull --ff-only origin dev
 ```
 
-`dev` が `origin/dev: behind ...` になっている場合は、作業ブランチを作る前に必ず上の `git pull origin dev` を実行します。
+作業ツリーがきれいで、`dev` が `behind` の場合だけ上の `git pull --ff-only origin dev` を実行します。`ahead` または `diverged` の場合は、取り込まずリーダーへ相談してください。
 
 ### 2. 自分の作業ブランチを作る
 
@@ -110,11 +110,11 @@ PR の説明には、次のテンプレートを使います。
 
 ### 5. 取り込み後
 
-`dev` に PR が取り込まれたら、自分のローカルも最新にします。
+`dev` に PR が取り込まれたら、自分のローカルも最新にします。`ahead` または `diverged` の場合は、更新せずリーダーへ相談してください。
 
 ```bash
 git switch dev
-git pull origin dev
+git pull --ff-only origin dev
 ```
 
 ## よくあるエラー
@@ -127,11 +127,7 @@ git pull origin dev
 git remote -v
 ```
 
-URLが違う場合だけ、次のように変更します。
-
-```bash
-git remote set-url origin git@github.com:sisicity4/SHUNKAN.git
-```
+URLが違っていても、すぐに変更しません。フォークやHTTPS接続など、正しい理由で異なる場合があります。チーム指定のリポジトリと接続方法をリーダーに確認し、指示があった場合だけ変更してください。
 
 ### `fatal: couldn't find remote ref main`
 
@@ -142,11 +138,11 @@ git branch -r
 git ls-remote --heads origin
 ```
 
-このプロジェクトでは、通常作業は `dev` を最新にしてから進めます。
+このプロジェクトでは、通常作業は `dev` を最新にしてから進めます。`ahead` または `diverged` の場合は、更新せずリーダーへ相談してください。
 
 ```bash
 git switch dev
-git pull origin dev
+git pull --ff-only origin dev
 ```
 
 ### `git remote pull` と打ってしまった
@@ -154,7 +150,7 @@ git pull origin dev
 `git remote` はリモート設定を管理するコマンドです。取り込みには `git pull` を使います。
 
 ```bash
-git pull origin dev
+git pull --ff-only origin dev
 ```
 
 ## コンフリクトが出たら

@@ -1,0 +1,10 @@
+# ローカルのエージェント向け指示
+AGENTS.md
+
+# Python / Django
+.venv/
+__pycache__/
+*.py[cod]
+db.sqlite3
+.env
+staticfiles/
