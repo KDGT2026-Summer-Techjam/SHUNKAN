@@ -12,6 +12,7 @@ SHUNKAN（瞬間）は、「この季節をどれだけ楽しめたか」を、�
 | [04-roadmap-and-tasks.md](04-roadmap-and-tasks.md) | 8月18日〜28日の全体スケジュールと初回担当タスク |
 | [05-techjam-tokyo2026-requirements.md](05-techjam-tokyo2026-requirements.md) | TechJam TOKYO 2026 の配布資料から確認した要件と運営ルール |
 | [06-team-availability.md](06-team-availability.md) | チームの稼働時間をGoogleスプレッドシートで更新・確認する手順 |
+| [07-issue-and-actions.md](07-issue-and-actions.md) | Issueの担当割り振りとGitHub Actionsによる通知の運用 |
 | [reference/TECHJAM-TOKYO2026.pdf](reference/TECHJAM-TOKYO2026.pdf) | TechJam TOKYO 2026 配布資料の原本 |
 | [reference/稼働可能時間シート.csv](reference/稼働可能時間シート.csv) | 提供された稼働時間シートの原本 |
 
