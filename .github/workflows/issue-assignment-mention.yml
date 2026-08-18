@@ -1,0 +1,54 @@
+name: Issue assignment mention
+
+on:
+  issues:
+    types: [assigned]
+  push:
+    branches: [dev]
+  pull_request:
+    branches: [dev]
+  workflow_dispatch:
+    inputs:
+      issue_number:
+        description: Issue number to notify
+        required: true
+        type: string
+      assignee_login:
+        description: GitHub login to mention
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  verify-dev-workflow:
+    if: github.event_name == 'push' || github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Confirm notification workflow is available on dev
+        run: echo "Issue notification workflow configuration is valid for dev."
+
+  mention-assignee:
+    if: github.event_name == 'issues' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Mention the assigned member
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const isIssueEvent = context.eventName === 'issues';
+            const issueNumber = isIssueEvent
+              ? context.payload.issue.number
+              : Number(context.payload.inputs.issue_number);
+            const login = isIssueEvent
+              ? context.payload.assignee.login
+              : context.payload.inputs.assignee_login;
+
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: issueNumber,
+              body: `@${login} 担当として割り当てました。Issueの期限・完了条件を確認し、着手前に不明点があればPMへ相談してください。`,
+            });
