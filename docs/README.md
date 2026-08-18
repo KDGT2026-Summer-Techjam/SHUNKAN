@@ -4,6 +4,15 @@ SHUNKAN（瞬間）は、「この季節をどれだけ楽しめたか」を、�
 
 このフォルダは、TechJam の6人チームが同じ前提で開発を進めるための共通資料です。特に初めてチーム開発をするメンバーでも、作業の始め方と提出方法が分かる内容にしています。
 
+## 最初に読むもの
+
+| あなたの立場 | まず読む資料 | 読み終えたらすること |
+| --- | --- | --- |
+| 全員 | [01-product-vision.md](01-product-vision.md)、[03-git-workflow.md](03-git-workflow.md) | プロダクトの目的とGitの流れを理解する |
+| 自分の担当を知りたい人 | [04-roadmap-and-tasks.md](04-roadmap-and-tasks.md) | 自分のIssue・期限・完了条件を確認する |
+| 初めて開発する人 | [02-development-guide.md](02-development-guide.md) | 小さな変更からPRまでの流れを確認する |
+| 進行を担当する人 | [04-roadmap-and-tasks.md](04-roadmap-and-tasks.md)、[06-team-availability.md](06-team-availability.md) | 今日の優先順位と稼働時間を確認する |
+
 | 資料 | 用途 |
 | --- | --- |
 | [01-product-vision.md](01-product-vision.md) | プロダクトの目的、利用体験、最初に作る機能 |
@@ -16,11 +25,10 @@ SHUNKAN（瞬間）は、「この季節をどれだけ楽しめたか」を、�
 | [reference/TECHJAM-TOKYO2026.pdf](reference/TECHJAM-TOKYO2026.pdf) | TechJam TOKYO 2026 配布資料の原本 |
 | [reference/稼働可能時間シート.csv](reference/稼働可能時間シート.csv) | 提供された稼働時間シートの原本 |
 
-## この資料の使い方
+## 作業を始める前の3ステップ
 
-1. 全員が最初にプロダクト方針と Git の手順を読みます。
-2. 自分の担当タスクをロードマップで確認し、`dev` から作業ブランチを作ります。
-3. 作業が終わったら `dev` 宛てに Pull Request を出します。
-4. `main` へのマージはリポジトリ管理者だけが行います。
+1. [04-roadmap-and-tasks.md](04-roadmap-and-tasks.md) で、自分の担当・期限・Issueを確認します。
+2. `dev` を最新にしてから、自分の作業ブランチを作ります。
+3. 完了条件を確認し、変更後にPRを `dev` 宛てで作成します。
 
-> 現時点では仕様を固める段階です。画面・データ構造・CSS フレームワークは、8月21日の中間チェックまでに最小構成を完成させることを優先します。
+> 迷ったときは、Must機能を優先し、15〜30分進まなければPMへ相談してください。
