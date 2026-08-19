@@ -34,6 +34,10 @@ TechJam TOKYO 2026 の配布資料から確認した要件と運営ルールを�
 
 秒単位カウントダウン、瞬間ログ、4画面、データ項目、MVP外の共有機能を確定した資料です。
 
+### [TechJam TOKYO 2026 発表資料](https://docs.google.com/presentation/d/1m7pp3RolirlzMvjTzCTRCpL5q2Z7MQ8tSgltEnreGBs/edit)
+
+旬間（SHUNKAN）の課題、体験、MVP、デモの流れをまとめた発表用スライドです。
+
 ### [reference/TECHJAM-TOKYO2026.pdf](reference/TECHJAM-TOKYO2026.pdf)
 
 TechJam TOKYO 2026 配布資料の原本です。
