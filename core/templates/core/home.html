@@ -9,6 +9,36 @@
     <main>
       <h1>旬間 <span lang="en">(SHUNKAN)</span></h1>
       <p>夏の瞬間を残すアプリ</p>
+      {% if is_over %}
+        <p id="countdown">夏は終わりました</p>
+      {% else %}
+        <p id="countdown">夏の終わりまで: {{ days }}日 {{ hours }}時間 {{ minutes }}分 {{ seconds }}秒</p>
+      {% endif %}
     </main>
+    <script>
+      (function () {
+        const deadline = new Date("{{ deadline|date:'c' }}");
+        const countdownEl = document.getElementById("countdown");
+
+        function tick() {
+          const diffMs = deadline.getTime() - Date.now();
+          if (diffMs <= 0) {
+            countdownEl.textContent = "夏は終わりました";
+            return;
+          }
+
+          const total = Math.floor(diffMs / 1000);
+          const days = Math.floor(total / 86400);
+          const hours = Math.floor((total % 86400) / 3600);
+          const minutes = Math.floor((total % 3600) / 60);
+          const seconds = total % 60;
+          countdownEl.textContent =
+            "夏の終わりまで: " + days + "日 " + hours + "時間 " + minutes + "分 " + seconds + "秒";
+        }
+
+        tick();
+        setInterval(tick, 1000);
+      })();
+    </script>
   </body>
 </html>
