@@ -1,0 +1,69 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="3040" viewBox="0 0 1080 3040" role="img" aria-labelledby="title desc">
+  <title id="title">SHUNKAN Figmaデザイン比較</title>
+  <desc id="desc">元案A、元案B、現行プロトタイプを6つの観点で比較した縦長の図</desc>
+  <style>
+    text { font-family: "Noto Sans JP", "Hiragino Sans", "Yu Gothic", sans-serif; fill: #172541; }
+    .eyebrow { font-size: 24px; font-weight: 700; letter-spacing: 2px; fill: #e77d69; }
+    .title { font-size: 52px; font-weight: 800; }
+    .lead { font-size: 25px; fill: #637087; }
+    .section { font-size: 30px; font-weight: 800; }
+    .cardtitle { font-size: 21px; font-weight: 800; }
+    .body { font-size: 20px; font-weight: 500; fill: #3e4b63; }
+    .summary { font-size: 27px; font-weight: 800; }
+    .note { font-size: 19px; fill: #e7ecf5; }
+    .footer { font-size: 20px; fill: #667085; }
+  </style>
+  <rect width="1080" height="3040" fill="#faf7f2"/>
+  <rect width="1080" height="16" fill="#e77d69"/>
+  <text x="70" y="104" class="eyebrow">SHUNKAN / FIGMA REVIEW</text>
+  <text x="70" y="172" class="title">デザイン比較</text>
+  <text x="70" y="218" class="lead">元案2つと現行プロトタイプの整理</text>
+  <line x1="70" y1="260" x2="1010" y2="260" stroke="#dfe5ec" stroke-width="2"/>
+
+  <!-- 01 中心体験 -->
+  <text x="70" y="326" class="section">01　中心体験</text>
+  <rect x="70" y="354" width="280" height="260" rx="24" fill="#fff"/><rect x="70" y="354" width="280" height="10" rx="5" fill="#f6bd60"/>
+  <text x="98" y="408" class="cardtitle">元案A｜SHUNKAN 旬間</text><text x="98" y="458" class="body">秒まで見える</text><text x="98" y="492" class="body">夏のカウントダウン</text><text x="98" y="526" class="body">＋ やること</text>
+  <rect x="400" y="354" width="280" height="260" rx="24" fill="#fff"/><rect x="400" y="354" width="280" height="10" rx="5" fill="#92b6d5"/>
+  <text x="428" y="408" class="cardtitle">元案B</text><text x="428" y="458" class="body">今を記録</text><text x="428" y="492" class="body">→ タスク</text><text x="428" y="526" class="body">→ 夏のアルバム</text>
+  <rect x="730" y="354" width="280" height="260" rx="24" fill="#fff"/><rect x="730" y="354" width="280" height="10" rx="5" fill="#e77d69"/>
+  <text x="758" y="408" class="cardtitle">現行プロトタイプ</text><text x="758" y="458" class="body">カウントダウン</text><text x="758" y="492" class="body">→ タスク追加</text><text x="758" y="526" class="body">→ 瞬間記録／アルバム</text>
+
+  <!-- 02 カウントダウン -->
+  <text x="70" y="708" class="section">02　カウントダウン</text>
+  <rect x="70" y="736" width="280" height="230" rx="24" fill="#edf5fb"/><text x="98" y="790" class="cardtitle">元案A｜SHUNKAN 旬間</text><text x="98" y="840" class="body">写真背景</text><text x="98" y="874" class="body">「12日 03:24:18」</text>
+  <rect x="400" y="736" width="280" height="230" rx="24" fill="#edf5fb"/><text x="428" y="790" class="cardtitle">元案B</text><text x="428" y="840" class="body">明確な</text><text x="428" y="874" class="body">カウントダウンなし</text>
+  <rect x="730" y="736" width="280" height="230" rx="24" fill="#edf5fb"/><text x="758" y="790" class="cardtitle">現行プロトタイプ</text><text x="758" y="840" class="body">濃紺カードで</text><text x="758" y="874" class="body">夏の終わりを強調</text>
+
+  <!-- 03 記録画面 -->
+  <text x="70" y="1060" class="section">03　記録画面</text>
+  <rect x="70" y="1088" width="280" height="230" rx="24" fill="#fff"/><text x="98" y="1142" class="cardtitle">元案A｜SHUNKAN 旬間</text><text x="98" y="1192" class="body">写真・タスク一体</text><text x="98" y="1226" class="body">華やかな演出</text>
+  <rect x="400" y="1088" width="280" height="230" rx="24" fill="#fff"/><text x="428" y="1142" class="cardtitle">元案B</text><text x="428" y="1192" class="body">文章・カテゴリ</text><text x="428" y="1226" class="body">日時・保存</text>
+  <rect x="730" y="1088" width="280" height="230" rx="24" fill="#fff"/><text x="758" y="1142" class="cardtitle">現行プロトタイプ</text><text x="758" y="1192" class="body">文章・時刻・天気</text><text x="758" y="1226" class="body">を中心に構成</text>
+
+  <!-- 04 タスク -->
+  <text x="70" y="1412" class="section">04　タスク</text>
+  <rect x="70" y="1440" width="280" height="230" rx="24" fill="#edf5fb"/><text x="98" y="1494" class="cardtitle">元案A｜SHUNKAN 旬間</text><text x="98" y="1544" class="body">写真・イラスト付き</text><text x="98" y="1578" class="body">期限が近いものを表示</text>
+  <rect x="400" y="1440" width="280" height="230" rx="24" fill="#edf5fb"/><text x="428" y="1494" class="cardtitle">元案B</text><text x="428" y="1544" class="body">簡潔なリスト</text><text x="428" y="1578" class="body">＋ 進捗バー</text>
+  <rect x="730" y="1440" width="280" height="230" rx="24" fill="#edf5fb"/><text x="758" y="1494" class="cardtitle">現行プロトタイプ</text><text x="758" y="1544" class="body">入力欄とカテゴリ選択</text><text x="758" y="1578" class="body">作成体験が中心</text>
+
+  <!-- 05 アルバム -->
+  <text x="70" y="1764" class="section">05　アルバム</text>
+  <rect x="70" y="1792" width="280" height="230" rx="24" fill="#fff"/><text x="98" y="1846" class="cardtitle">元案A｜SHUNKAN 旬間</text><text x="98" y="1896" class="body">海・かき氷・空など</text><text x="98" y="1930" class="body">複数写真の一覧</text>
+  <rect x="400" y="1792" width="280" height="230" rx="24" fill="#fff"/><text x="428" y="1846" class="cardtitle">元案B</text><text x="428" y="1896" class="body">記録とタスクが並ぶ</text><text x="428" y="1930" class="body">カード一覧</text>
+  <rect x="730" y="1792" width="280" height="230" rx="24" fill="#fff"/><text x="758" y="1846" class="cardtitle">現行プロトタイプ</text><text x="758" y="1896" class="body">花火を大きく見せる</text><text x="758" y="1930" class="body">鑑賞寄りの構成</text>
+
+  <!-- 06 質感 -->
+  <text x="70" y="2116" class="section">06　質感</text>
+  <rect x="70" y="2144" width="280" height="230" rx="24" fill="#edf5fb"/><text x="98" y="2198" class="cardtitle">元案A｜SHUNKAN 旬間</text><text x="98" y="2248" class="body">写真・紙・テープ・光</text><text x="98" y="2282" class="body">賑やかな夏祭り感</text>
+  <rect x="400" y="2144" width="280" height="230" rx="24" fill="#edf5fb"/><text x="428" y="2198" class="cardtitle">元案B</text><text x="428" y="2248" class="body">白地・黒文字</text><text x="428" y="2282" class="body">余白の多いミニマル</text>
+  <rect x="730" y="2144" width="280" height="230" rx="24" fill="#edf5fb"/><text x="758" y="2198" class="cardtitle">現行プロトタイプ</text><text x="758" y="2248" class="body">白地・濃紺・コーラル</text><text x="758" y="2282" class="body">編集的で力強い印象</text>
+
+  <!-- 結論 -->
+  <rect x="70" y="2475" width="940" height="340" rx="30" fill="#182542"/><rect x="106" y="2520" width="11" height="210" rx="5" fill="#e77d69"/>
+  <text x="148" y="2572" class="summary" style="fill:#fff">結論：体験は踏襲、ビジュアルは再解釈</text>
+  <text x="148" y="2632" class="note">Aの「秒カウントダウン」と、Bの「記録・タスク・アルバム」を継承。</text>
+  <text x="148" y="2670" class="note">現行は濃紺と大きな文字で、より編集的なデモ画面に再構成している。</text>
+  <text x="148" y="2708" class="note">元案らしさを戻すなら、複数写真のアルバムと季節素材を増やすとよい。</text>
+  <text x="70" y="2940" class="footer">SHUNKAN / Design comparison · 2026.08.21</text>
+</svg>
