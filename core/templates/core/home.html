@@ -9,21 +9,26 @@
     <main>
       <h1>旬間 <span lang="en">(SHUNKAN)</span></h1>
       <p>夏の瞬間を残すアプリ</p>
-      {% if is_over %}
-        <p id="countdown">夏は終わりました</p>
-      {% else %}
-        <p id="countdown">夏の終わりまで: {{ days }}日 {{ hours }}時間 {{ minutes }}分 {{ seconds }}秒</p>
-      {% endif %}
+      <p id="countdown">
+        {% if is_over %}
+          夏の終わりまで: 00日 00:00:00
+        {% else %}
+          夏の終わりまで: {{ days }}日 {{ hours|stringformat:"02d" }}:{{ minutes|stringformat:"02d" }}:{{ seconds|stringformat:"02d" }}
+        {% endif %}
+      </p>
+      <p id="season-status"{% if not is_over %} hidden{% endif %}>夏は終了しました</p>
     </main>
     <script>
       (function () {
         const deadline = new Date("{{ deadline|date:'c' }}");
         const countdownEl = document.getElementById("countdown");
+        const seasonStatusEl = document.getElementById("season-status");
 
         function tick() {
           const diffMs = deadline.getTime() - Date.now();
           if (diffMs <= 0) {
-            countdownEl.textContent = "夏は終わりました";
+            countdownEl.textContent = "夏の終わりまで: 00日 00:00:00";
+            seasonStatusEl.hidden = false;
             return;
           }
 
@@ -33,7 +38,11 @@
           const minutes = Math.floor((total % 3600) / 60);
           const seconds = total % 60;
           countdownEl.textContent =
-            "夏の終わりまで: " + days + "日 " + hours + "時間 " + minutes + "分 " + seconds + "秒";
+            "夏の終わりまで: " + days + "日 " +
+            String(hours).padStart(2, "0") + ":" +
+            String(minutes).padStart(2, "0") + ":" +
+            String(seconds).padStart(2, "0");
+          seasonStatusEl.hidden = true;
         }
 
         tick();
