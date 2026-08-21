@@ -13,3 +13,4 @@ staticfiles/
 output/playwright/
 pyrightconfig.json
 .zed/settings.json
+moment_photos/
