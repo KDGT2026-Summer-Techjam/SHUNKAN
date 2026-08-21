@@ -1,10 +1,25 @@
+import os
 from pathlib import Path
 
-BASE_DIR = Path(__file__).resolve().parent.parent
+from dotenv import load_dotenv
 
-SECRET_KEY = "django-insecure-local-development-only"
-DEBUG = True
-ALLOWED_HOSTS = ["127.0.0.1", "localhost", "testserver"]
+BASE_DIR = Path(__file__).resolve().parent.parent
+load_dotenv(BASE_DIR / ".env")
+
+DEBUG = os.environ.get("DJANGO_DEBUG", "true").lower() in {"1", "true", "yes", "on"}
+secret_key = os.environ.get("DJANGO_SECRET_KEY")
+if not secret_key:
+    if DEBUG:
+        secret_key = "django-insecure-local-development-only"
+    else:
+        raise RuntimeError("DJANGO_SECRET_KEY must be set when DJANGO_DEBUG is false.")
+SECRET_KEY = secret_key
+
+ALLOWED_HOSTS = [
+    host.strip()
+    for host in os.environ.get("DJANGO_ALLOWED_HOSTS", "127.0.0.1,localhost,testserver").split(",")
+    if host.strip()
+]
 
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -52,5 +67,16 @@ LANGUAGE_CODE = "ja"
 TIME_ZONE = "Asia/Tokyo"
 USE_I18N = True
 USE_TZ = True
-STATIC_URL = "static/"
+STATIC_URL = "/static/"
+STATICFILES_DIRS = [BASE_DIR / "static"]
+STATIC_ROOT = BASE_DIR / "staticfiles"
+
+if not DEBUG:
+    SECURE_SSL_REDIRECT = True
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    SECURE_HSTS_SECONDS = 31_536_000
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
+
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
