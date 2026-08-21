@@ -4,6 +4,8 @@ from unittest.mock import patch
 from django.test import TestCase
 from django.utils import timezone
 
+from core.models import Task
+
 
 class HomeViewTests(TestCase):
     def test_home_page_is_available(self):
@@ -37,3 +39,57 @@ class HomeViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "夏の終わりまで: 00日 00:00:00")
         self.assertContains(response, "夏は終了しました")
+
+
+class TaskViewTests(TestCase):
+    def test_task_page_is_available(self):
+        response = self.client.get("/task/")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "タスク")
+        self.assertContains(response, "まだタスクがありません")
+
+    def test_create_task_and_see_it_in_list(self):
+        response = self.client.post(
+            "/task/",
+            {
+                "title": "花火を見る",
+                "category": "イベント",
+                "due_date": "2026-08-20",
+            },
+            follow=True,
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "花火を見る")
+        self.assertContains(response, "イベント")
+        self.assertContains(response, "2026年8月20日")
+        self.assertEqual(Task.objects.count(), 1)
+
+    def test_invalid_due_date_shows_error(self):
+        response = self.client.post(
+            "/task/",
+            {
+                "title": "花火を見る",
+                "category": "イベント",
+                "due_date": "2026-09-01",
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "実行したい日は2026年8月31日以前にしてください。")
+        self.assertEqual(Task.objects.count(), 0)
+
+    def test_empty_title_shows_error(self):
+        response = self.client.post(
+            "/task/",
+            {
+                "title": "",
+                "category": "イベント",
+                "due_date": "2026-08-20",
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "タイトルを入力してください。")
+        self.assertEqual(Task.objects.count(), 0)

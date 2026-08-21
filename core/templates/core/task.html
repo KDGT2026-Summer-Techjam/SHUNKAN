@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>タスク | 旬間 (SHUNKAN)</title>
+  </head>
+  <body>
+    <main>
+      <h1>タスク</h1>
+
+      <form method="post" action="{% url 'task' %}" novalidate>
+        {% csrf_token %}
+        {{ form.non_field_errors }}
+        {% for field in form %}
+          <p>
+            <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+            {{ field }}
+            {% if field.errors %}
+              <span role="alert">{{ field.errors.0 }}</span>
+            {% endif %}
+          </p>
+        {% endfor %}
+        <button type="submit">追加</button>
+      </form>
+
+      <h2>一覧</h2>
+      {% if tasks %}
+        <ul>
+          {% for task in tasks %}
+            <li>
+              {{ task.title }}
+              （{{ task.get_category_display }} / {{ task.due_date|date:"Y年n月j日" }}）
+            </li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <p>まだタスクがありません</p>
+      {% endif %}
+    </main>
+  </body>
+</html>

@@ -1,7 +1,10 @@
 from datetime import datetime
 
-from django.shortcuts import render
+from django.shortcuts import redirect, render
 from django.utils import timezone
+
+from .forms import TaskForm
+from .models import Task
 
 SUMMER_END = timezone.make_aware(datetime(2026, 8, 31, 23, 59, 59))
 
@@ -26,3 +29,16 @@ def remaining_until_summer_end(now=None):
 
 def home(request):
     return render(request, "core/home.html", remaining_until_summer_end())
+
+
+def task(request):
+    if request.method == "POST":
+        form = TaskForm(request.POST)
+        if form.is_valid():
+            form.save()
+            return redirect("task")
+    else:
+        form = TaskForm()
+
+    tasks = Task.objects.all()
+    return render(request, "core/task.html", {"form": form, "tasks": tasks})
