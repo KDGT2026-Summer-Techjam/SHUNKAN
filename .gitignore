@@ -8,3 +8,8 @@ __pycache__/
 db.sqlite3
 .env
 staticfiles/
+
+.playwright-cli/
+output/playwright/
+pyrightconfig.json
+.zed/settings.json
