@@ -1,0 +1,63 @@
+{% extends "core/base.html" %}
+{% load static %}
+
+{% block title %}旬間 | 今を残す{% endblock %}
+
+{% block content %}
+<header class="page-header">
+  <div class="page-header__brand-block">
+    <div class="page-header__season">
+      <strong>旬間</strong>
+      <span>2026.08.20</span>
+      <span>夏 ｜ summer</span>
+    </div>
+    <div>
+      <h1 class="page-header__title">今を残す</h1>
+      <p class="page-header__subtitle">・この夏を残そう</p>
+    </div>
+  </div>
+</header>
+
+<section class="season-carousel" aria-label="季節の写真">
+  <div class="season-carousel__track">
+    <figure class="season-carousel__slide">
+      <img src="{% static 'core/images/fireworks.jpg' %}" alt="夜空に上がる花火">
+      <figcaption>・夏の夜</figcaption>
+    </figure>
+    <figure class="season-carousel__slide">
+      <img src="{% static 'core/images/kakigori.jpg' %}" alt="青と赤のかき氷">
+      <figcaption>・夏の味</figcaption>
+    </figure>
+    <figure class="season-carousel__slide">
+      <img src="{% static 'core/images/festival.jpg' %}" alt="夏祭りの夜">
+      <figcaption>・夏祭り</figcaption>
+    </figure>
+  </div>
+</section>
+
+<form class="form" action="#" method="post">
+  {% csrf_token %}
+  <div class="form__field">
+    <label class="sr-only" for="moment-body">いまの瞬間を入力</label>
+    <textarea class="form__textarea" id="moment-body" name="body" maxlength="280" placeholder="いま残しておきたいことを書こう"></textarea>
+  </div>
+
+  <fieldset class="form__field form__field--plain">
+    <legend class="form__label">カテゴリー</legend>
+    <div class="category-list">
+      <label><input type="radio" name="category" value="food"><span>#食べた</span></label>
+      <label><input type="radio" name="category" value="went"><span>#行った</span></label>
+      <label><input type="radio" name="category" value="saw"><span>#見た</span></label>
+      <label><input type="radio" name="category" value="felt"><span>#感じた</span></label>
+    </div>
+  </fieldset>
+
+  <div class="form__field">
+    <label class="form__label" for="occurred-at">日時</label>
+    <input class="form__datetime" id="occurred-at" name="occurred_at" type="datetime-local">
+  </div>
+
+  <button class="primary-button" type="button" disabled aria-describedby="save-note">保存する</button>
+  <p class="form-note" id="save-note">保存処理はタスク・ログ実装ブランチで接続します。</p>
+</form>
+{% endblock %}

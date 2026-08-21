@@ -1,0 +1,35 @@
+{% extends "core/base.html" %}
+
+{% block title %}旬間 | タスク{% endblock %}
+
+{% block content %}
+<header class="page-header">
+  <h1 class="page-header__title">タスク</h1>
+  <p class="page-header__subtitle">この夏、なにしたい？</p>
+</header>
+
+<section class="progress" aria-label="今の進捗">
+  <div class="progress__summary">
+    <span>今の進捗</span>
+    <strong>0 / 0</strong>
+  </div>
+  <div class="progress__bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+    <div class="progress__value" style="width: 0%"></div>
+  </div>
+</section>
+
+<section class="task-section" aria-labelledby="task-list-title">
+  <div class="task-toolbar">
+    <h2 id="task-list-title">今月のタスク</h2>
+    <div class="task-toolbar__filters" aria-label="タスク操作">
+      <button class="chip" type="button" disabled>完了</button>
+      <button class="chip" type="button" disabled>未完了</button>
+    </div>
+  </div>
+  <div class="empty-state">
+    <p>まだタスクがありません。</p>
+    <p>タスク登録と完了切替は、データ実装後にここへ表示されます。</p>
+  </div>
+  <button class="add-button" type="button" disabled aria-label="タスクを追加">＋</button>
+</section>
+{% endblock %}

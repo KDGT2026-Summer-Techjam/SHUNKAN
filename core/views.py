@@ -26,3 +26,15 @@ def remaining_until_summer_end(now=None):
 
 def home(request):
     return render(request, "core/home.html", remaining_until_summer_end())
+
+
+def moments_new(request):
+    return render(request, "core/moments_new.html")
+
+
+def tasks(request):
+    return render(request, "core/tasks.html")
+
+
+def album(request):
+    return render(request, "core/album.html")
