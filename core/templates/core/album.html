@@ -1,0 +1,36 @@
+{% extends "core/base.html" %}
+{% load static %}
+
+{% block title %}旬間 | 夏のアルバム{% endblock %}
+
+{% block content %}
+<header class="page-header">
+  <h1 class="page-header__title">夏のアルバム</h1>
+  <p class="page-header__subtitle">この夏を振り返ろう</p>
+</header>
+
+<section class="progress" aria-label="今の進捗">
+  <div class="progress__summary">
+    <span>今の進捗</span>
+    <strong>0 / 0</strong>
+  </div>
+  <div class="progress__bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+    <div class="progress__value" style="width: 0%"></div>
+  </div>
+</section>
+
+<section class="album-section" aria-labelledby="album-title">
+  <h2 id="album-title">夏の記録</h2>
+  <article class="album-preview">
+    <img src="{% static 'core/images/sea.jpg' %}" alt="夏の海">
+    <div>
+      <p class="album-preview__tag">・夏の思い出</p>
+      <p class="album-preview__text">完了したタスクと残した瞬間が、ここに並びます。</p>
+    </div>
+  </article>
+  <div class="empty-state">
+    <p>まだ記録がありません。</p>
+    <p>季節の瞬間を残すと、ここに思い出が並びます。</p>
+  </div>
+</section>
+{% endblock %}
