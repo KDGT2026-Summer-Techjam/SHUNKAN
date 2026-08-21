@@ -9,6 +9,7 @@ db.sqlite3
 .env
 staticfiles/
 
-# Playwright CLI のローカル実行ログ・ページ取得結果
 .playwright-cli/
 output/playwright/
+pyrightconfig.json
+.zed/settings.json
