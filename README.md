@@ -1,48 +1,59 @@
-Aチームのアプリ、旬間のレポジトリ。
-
 # 旬間 (SHUNKAN)
 
-TechJam 用の Django 製、個人利用の夏タスク・SHUNKAN-logアプリです。SHUNKAN-log は、旬の出来事や気持ちを残す短い記録の名称です。
+旬間（SHUNKAN）は、今だけの期間をRoomとして作り、終了時刻までを秒単位で数えながら、やりたいこと、達成したこと、その瞬間の記録と写真を残す、個人利用のスマートフォン向けWebアプリです。
 
-夏の終わりまでを秒単位で数えながら、やりたいことと「今しかない」出来事を残します。短い時間でも次にやることが分かり、夏を楽しめた実感につながることを目指します。
+2026 夏に固定したアプリではありません。最初のデモでは、次のRoomを例として扱います。
 
-## MVPでできること
+| Room | 終了日時 |
+| --- | --- |
+| 2026 夏 | 2026-08-31 23:59:59 JST |
+| TechJam 2026 | 2026-08-28 18:00:00 JST |
 
-- 2026年8月31日23:59:59までの残り日・時・分・秒を確認する
-- タイトル・カテゴリ・期限を付けて夏タスクを登録する
-- タスクを完了にし、未完了・完了と進捗率を確認する
-- 旬の出来事や気持ちをSHUNKAN-logに残し、写真を添える
-- 夏のアルバムで完了タスクとSHUNKAN-logを振り返る
+## MVPで提供する機能
 
-> MVPは個人利用です。SHUNKAN-logには写真を最大3枚添付できます。共有・公開、SNS連携、通知、動画アップロードはMVPの対象外です。詳細は [要件定義](docs/07-要件定義.md) を確認してください。
+以下はMVPの要件です。実装の進捗・担当・完了状況はGitHub Issueを正本として確認してください。
+
+- ユーザー登録、ログイン、ログアウト
+- 自分のRoomの作成・切替
+- Roomごとの秒単位カウントダウン
+- Room内Taskの登録、編集、削除、完了、進捗表示
+- SHUNKAN-log、関連Task、カテゴリ、写真、写真へのひとこと
+- Room別アルバム
+- 終了済みRoomの閲覧専用化
+- 振り返りログはAdditionalであり、MVPのMust完了後にのみ着手する
+
+> MVPは個人利用です。共有、公開、共同編集、SNS連携、通知は対象外です。写真はMomentLogに紐付け、JPEG / PNG / WebP形式、1枚5MB以下、MomentLog 1件あたり最大3枚とします。詳細は[要件定義](docs/07-要件定義.md)を確認してください。
+
+## 開発を始める
+
+詳細は[開発ガイド](docs/02-開発ガイド.md)を参照してください。基本の流れは次のとおりです。
+
+1. 仮想環境を作成して有効化する
+2. `python -m pip install -r requirements.txt`
+3. PostgreSQLを起動する
+4. `cp .env.example .env` を実行し、接続情報を設定する
+5. `python manage.py migrate`
+6. `python manage.py check`
+7. `python manage.py test`
+8. 必要なら `python manage.py seed_demo`
+9. `python manage.py runserver`
+
+`seed_demo` は開発用データを投入するコマンドです。ログイン用の公開パスワードを提供・設定するものではありません。
 
 ## チーム開発
 
-開発方針・GitHub運用・ロードマップは [docs/README.md](docs/README.md) にまとめています。初めて参加するメンバーは、次の順番で確認してください。
+開発方針・GitHub運用・ロードマップは[docs/README.md](docs/README.md)にまとめています。初めて参加するメンバーは、次の順番で確認してください。
 
 1. [プロダクトビジョン](docs/01-プロダクトビジョン.md)
 2. [要件定義](docs/07-要件定義.md)
-3. [ロードマップとタスク](docs/04-ロードマップとタスク.md)
-4. [GitHub運用手順](docs/03-GitHub運用手順.md)
-5. [開発ガイド](docs/02-開発ガイド.md)
-
-## 開発環境
-
-```bash
-python3 -m venv .venv
-source .venv/bin/activate
-python -m pip install -r requirements.txt
-python manage.py migrate
-python manage.py check
-python manage.py test
-python manage.py runserver
-```
-
-ブラウザで `http://127.0.0.1:8000/` を開き、トップページが表示されることを確認します。
+3. [ルーム中心設計](docs/08-ルーム中心設計.md)
+4. [ロードマップとタスク](docs/04-ロードマップとタスク.md)
+5. [GitHub運用手順](docs/03-GitHub運用手順.md)
+6. [開発ガイド](docs/02-開発ガイド.md)
 
 ## デザイン資料
 
-画面イメージは [pictures/](pictures/) にあります。これらはチームで共有する参考資料です。
+画面イメージは[pictures/](pictures/)にあります。これらはチームで共有する参考資料です。
 
 ## リポジトリ構成
 
