@@ -1,0 +1,19 @@
+{% load static %}
+<nav class="bottom-nav" aria-label="メインナビゲーション">
+  <a class="bottom-nav__item" href="{% url 'tasks' %}">
+    <img class="nav-icon-img" src="{% static 'core/images/hensyu.png' %}" alt="編集">
+  </a>
+  <a class="bottom-nav__item" href="{% url 'rooms' %}">
+    <img class="nav-icon-img" src="{% static 'core/images/room.png' %}" alt="ルーム">
+  </a>
+  <a class="bottom-nav__capture" href="{% url 'moments_new' %}">
+    <span class="capture-mark">旬</span>
+    <span>撮影</span>
+  </a>
+  <a class="bottom-nav__item" href="{% url 'album' %}">
+    <img class="nav-icon-img" src="{% static 'core/images/arubamu.png' %}" alt="アルバム">
+  </a>
+  <a class="bottom-nav__item" href="{% url 'rooms' %}" aria-label="プロフィールは準備中">
+    <img class="nav-icon-img" src="{% static 'core/images/purofiru.png' %}" alt="プロフィール">
+  </a>
+</nav>

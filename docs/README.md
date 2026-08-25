@@ -15,6 +15,7 @@
 - [07-要件定義.md](07-要件定義.md): 画面、データ、状態制御、受入条件
 - [08-ルーム中心設計.md](08-ルーム中心設計.md): Room中心の関係、状態判定、実装方針
 - [09-単体HTMLからDjango接続への実装手順.md](09-単体HTMLからDjango接続への実装手順.md): 単体HTMLをDjango、CSS、JavaScriptへ段階的に接続する手順
+- [10-Renderデプロイ手順.md](10-Renderデプロイ手順.md): Render BlueprintでのWebアプリ・PostgreSQLの公開手順
 
 ## まず読む順番
 

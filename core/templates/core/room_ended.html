@@ -6,6 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>旬間 (SHUNKAN) | 終了したRoom</title>
   <link rel="stylesheet" href="{% static 'core/css/v8-ui.css' %}">
+  <link rel="stylesheet" href="{% static 'core/css/shunkan-preview.css' %}">
 </head>
 <body>
   <main class="app">
@@ -35,10 +36,6 @@
       <p>終了後の振り返り投稿はAdditional機能です。Mustでは提供せず、実装時は専用の期限とサーバー側の許可判定を追加します。</p>
     </section>
   </main>
-  <nav class="footer-nav" aria-label="主要メニュー">
-    <a href="{% url 'rooms' %}" aria-current="page">Room</a>
-    <a href="{% url 'tasks' %}">タスク</a>
-    <a href="{% url 'album' %}">アルバム</a>
-  </nav>
+  {% include "core/includes/bottom_nav.html" %}
 </body>
 </html>

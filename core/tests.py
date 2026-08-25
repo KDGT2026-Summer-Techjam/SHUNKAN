@@ -30,7 +30,7 @@ class AuthenticationViewTests(TestCase):
         response = self.client.get(reverse("login"))
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "ログインしてRoomへ進む")
+        self.assertContains(response, "ログイン")
         self.assertContains(response, 'href="/accounts/signup/"')
         self.assertContains(response, "csrfmiddlewaretoken")
 
@@ -85,7 +85,7 @@ class AuthenticationViewTests(TestCase):
         )
 
         self.assertRedirects(response, reverse("rooms"))
-        self.assertContains(response, "demo-userさんのRoom")
+        self.assertContains(response, "ルーム一覧")
 
     def test_anonymous_user_is_redirected_to_login(self):
         response = self.client.get(reverse("rooms"))

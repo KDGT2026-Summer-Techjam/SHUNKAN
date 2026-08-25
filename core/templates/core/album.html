@@ -6,6 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>旬間 (SHUNKAN) | 夏のアルバム</title>
   <link rel="stylesheet" href="{% static 'core/css/v8-ui.css' %}">
+  <link rel="stylesheet" href="{% static 'core/css/shunkan-preview.css' %}">
 </head>
 <body>
   <main class="app">
@@ -56,10 +57,6 @@
       <p>写真がなくても最初のひとことを残すと、ここにRoomごとのアルバムとして並びます。この例では、上の記録があるため表示しません。</p>
     </section>
   </main>
-  <nav class="footer-nav" aria-label="主要メニュー">
-    <a href="{% url 'rooms' %}">Room</a>
-    <a href="{% url 'tasks' %}">タスク</a>
-    <a href="{% url 'album' %}" aria-current="page">アルバム</a>
-  </nav>
+  {% include "core/includes/bottom_nav.html" %}
 </body>
 </html>
