@@ -12,8 +12,10 @@
 <body>
   <main class="app">
     {% include "core/includes/auth_header.html" %}
+
     <header class="page-header">
       <a class="back-link" href="{% url 'rooms' %}">← Room一覧</a>
+
       <div class="page-header__row">
         <div>
           <p class="eyebrow">旬間 (SHUNKAN) / 開催中のRoom</p>
@@ -26,7 +28,11 @@
     <section class="countdown" aria-labelledby="countdown-title">
       <p class="countdown__label" id="countdown-title">終了まで</p>
 
-      <p class="countdown__value" id="countdown" data-ends-at="{{ room.ends_at|date:'c' }}">
+      <p
+        class="countdown__value"
+        id="countdown"
+        data-ends-at="{{ room.ends_at|date:'c' }}"
+      >
         --日 --:--:--
       </p>
 
@@ -38,9 +44,18 @@
     <section class="section" aria-labelledby="progress-title">
       <div class="progress-summary">
         <h2 id="progress-title">このRoomの進み具合</h2>
-        <strong>2 / 4</strong>
+
+        <strong>
+          {{ completed_task_count }} / {{ total_task_count }}
+        </strong>
       </div>
-      <div class="progress-bar" aria-label="進捗 50パーセント"><span></span></div>
+
+      <div
+        class="progress-bar"
+        aria-label="進捗 {{ progress_percent }}パーセント"
+      >
+        <span style="width: {{ progress_percent }}%;"></span>
+      </div>
     </section>
 
     <section class="section" aria-labelledby="next-task-title">
@@ -48,13 +63,36 @@
         <h2 id="next-task-title">次にやること</h2>
         <a class="text-link" href="{% url 'tasks' room.pk %}">一覧へ</a>
       </div>
-      <article class="item-card">
-        <span class="check-button" aria-hidden="true"></span>
-        <div class="item-card__body">
-          <h3 class="item-card__title">友だちと花火を見る</h3>
-          <p class="item-card__meta">8月27日まで ・ 夏の思い出</p>
-        </div>
-      </article>
+
+      {% if incomplete_tasks %}
+        {% for task in incomplete_tasks %}
+          <article class="item-card">
+            <span class="check-button" aria-hidden="true"></span>
+
+            <div class="item-card__body">
+              <h3 class="item-card__title">{{ task.title }}</h3>
+
+              <p class="item-card__meta">
+                {% if task.due_date %}
+                  {{ task.due_date|date:"n月j日" }}まで
+                {% else %}
+                  期限なし
+                {% endif %}
+
+                {% if task.category %}
+                  ・ {{ task.category.name }}
+                {% endif %}
+              </p>
+            </div>
+          </article>
+        {% endfor %}
+      {% else %}
+        <article class="item-card">
+          <div class="item-card__body">
+            <p class="note">未完了のタスクはありません。</p>
+          </div>
+        </article>
+      {% endif %}
     </section>
 
     <section class="section" aria-labelledby="latest-log-title">
@@ -62,12 +100,30 @@
         <h2 id="latest-log-title">最新のSHUNKAN-log</h2>
         <a class="text-link" href="{% url 'room_album' room.pk %}">アルバムへ</a>
       </div>
-      <article class="item-card">
-        <div class="item-card__body">
-          <h3 class="item-card__title">夕方の風が涼しかった</h3>
-          <p class="item-card__meta">8月20日 18:24 ・ 夏の思い出</p>
-        </div>
-      </article>
+
+      {% if recent_logs %}
+        {% for log in recent_logs %}
+          <article class="item-card">
+            <div class="item-card__body">
+              <h3 class="item-card__title">{{ log.body }}</h3>
+
+              <p class="item-card__meta">
+                {{ log.occurred_at|date:"n月j日 H:i" }}
+
+                {% if log.category %}
+                  ・ {{ log.category.name }}
+                {% endif %}
+              </p>
+            </div>
+          </article>
+        {% endfor %}
+      {% else %}
+        <article class="item-card">
+          <div class="item-card__body">
+            <p class="note">まだSHUNKAN-logはありません。</p>
+          </div>
+        </article>
+      {% endif %}
     </section>
 
     <section class="section" aria-labelledby="moment-action-title">
@@ -77,55 +133,58 @@
           <p class="note">写真がなくても、短い一言だけで残せる。</p>
         </div>
       </div>
+
       <div class="button-stack">
-        <a class="button" href="{% url 'room_moments_new' room.pk %}">今を残す</a>
-        <a class="button--secondary" href="{% url 'room_album' room.pk %}">夏のアルバムを見る</a>
+        <a class="button" href="{% url 'room_moments_new' room.pk %}">
+          今を残す
+        </a>
+
+        <a class="button--secondary" href="{% url 'room_album' room.pk %}">
+          夏のアルバムを見る
+        </a>
       </div>
     </section>
   </main>
+
   <nav class="footer-nav" aria-label="主要メニュー">
     <a href="{% url 'room_detail' room.pk %}">Room</a>
     <a href="{% url 'tasks' room.pk %}">タスク</a>
     <a href="{% url 'room_album' room.pk %}">アルバム</a>
   </nav>
+
   <script>
-  const countdown = document.getElementById("countdown");
-  const countdownNote = document.getElementById("countdown-note");
+    const countdown = document.getElementById("countdown");
+    const countdownNote = document.getElementById("countdown-note");
 
-  const endsAt = new Date(countdown.dataset.endsAt);
+    const endsAt = new Date(countdown.dataset.endsAt);
 
-  function updateCountdown() {
-    const now = new Date();
-    const remaining = endsAt.getTime() - now.getTime();
+    function updateCountdown() {
+      const now = new Date();
+      const remaining = endsAt.getTime() - now.getTime();
 
-    if (remaining <= 0) {
-      countdown.textContent = "00日 00:00:00";
-      countdownNote.textContent = "このRoomは終了しました。";
-      return;
+      if (remaining <= 0) {
+        countdown.textContent = "00日 00:00:00";
+        countdownNote.textContent = "このRoomは終了しました。";
+        return;
+      }
+
+      const totalSeconds = Math.floor(remaining / 1000);
+
+      const days = Math.floor(totalSeconds / 86400);
+      const hours = Math.floor((totalSeconds % 86400) / 3600);
+      const minutes = Math.floor((totalSeconds % 3600) / 60);
+      const seconds = totalSeconds % 60;
+
+      countdown.textContent =
+        `${days}日 ` +
+        `${String(hours).padStart(2, "0")}:` +
+        `${String(minutes).padStart(2, "0")}:` +
+        `${String(seconds).padStart(2, "0")}`;
     }
 
-    const totalSeconds = Math.floor(remaining / 1000);
-
-    const days = Math.floor(totalSeconds / (24 * 60 * 60));
-    const hours = Math.floor(
-      (totalSeconds % (24 * 60 * 60)) / (60 * 60)
-    );
-    const minutes = Math.floor(
-      (totalSeconds % (60 * 60)) / 60
-    );
-    const seconds = totalSeconds % 60;
-
-    countdown.textContent =
-      `${days}日 ` +
-      `${String(hours).padStart(2, "0")}:` +
-      `${String(minutes).padStart(2, "0")}:` +
-      `${String(seconds).padStart(2, "0")}`;
-  }
-
-  updateCountdown();
-  setInterval(updateCountdown, 1000);
-</script>
-
+    updateCountdown();
+    setInterval(updateCountdown, 1000);
+  </script>
 </body>
 
 </html>

@@ -5,7 +5,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 
 from .forms import RoomForm
-from .models import Room
+from .models import MomentLog, Room, Task
 
 
 def home(request):
@@ -64,10 +64,28 @@ def room_detail(request, room_id):
 @login_required
 def room_active(request, room_id):
     room = get_object_or_404(Room, pk=room_id, owner=request.user)
+
+    incomplete_tasks = (
+        Task.objects
+        .filter(room=room, is_completed=False)
+        .order_by("due_date", "id")[:1]
+    )
+
+    recent_logs = (
+        MomentLog.objects
+        .filter(room=room)
+        .order_by("-occurred_at", "-id")[:1]
+    )
+
     return render(
         request,
         "core/room_active.html",
-        {"room": room, "now": timezone.now()},
+        {
+            "room": room,
+            "now": timezone.now(),
+            "incomplete_tasks": incomplete_tasks,
+            "recent_logs": recent_logs,
+        },
     )
 
 
