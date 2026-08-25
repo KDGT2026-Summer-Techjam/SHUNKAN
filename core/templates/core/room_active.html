@@ -1,12 +1,14 @@
 {% load static %}
 <!doctype html>
 <html lang="ja">
+
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>旬間 (SHUNKAN) | {{ room.name }}</title>
   <link rel="stylesheet" href="{% static 'core/css/v8-ui.css' %}">
 </head>
+
 <body>
   <main class="app">
     {% include "core/includes/auth_header.html" %}
@@ -22,9 +24,15 @@
     </header>
 
     <section class="countdown" aria-labelledby="countdown-title">
-      <p class="countdown__label" id="countdown-title">夏の終わりまで</p>
-      <p class="countdown__value">12日 03:24:18</p>
-      <p class="countdown__note">秒まで見えるから、いま撮った瞬間も残せる。</p>
+      <p class="countdown__label" id="countdown-title">終了まで</p>
+
+      <p class="countdown__value" id="countdown" data-ends-at="{{ room.ends_at|date:'c' }}">
+        --日 --:--:--
+      </p>
+
+      <p class="countdown__note" id="countdown-note">
+        秒まで見えるから、いま撮った瞬間も残せる。
+      </p>
     </section>
 
     <section class="section" aria-labelledby="progress-title">
@@ -80,5 +88,44 @@
     <a href="{% url 'tasks' room.pk %}">タスク</a>
     <a href="{% url 'room_album' room.pk %}">アルバム</a>
   </nav>
+  <script>
+  const countdown = document.getElementById("countdown");
+  const countdownNote = document.getElementById("countdown-note");
+
+  const endsAt = new Date(countdown.dataset.endsAt);
+
+  function updateCountdown() {
+    const now = new Date();
+    const remaining = endsAt.getTime() - now.getTime();
+
+    if (remaining <= 0) {
+      countdown.textContent = "00日 00:00:00";
+      countdownNote.textContent = "このRoomは終了しました。";
+      return;
+    }
+
+    const totalSeconds = Math.floor(remaining / 1000);
+
+    const days = Math.floor(totalSeconds / (24 * 60 * 60));
+    const hours = Math.floor(
+      (totalSeconds % (24 * 60 * 60)) / (60 * 60)
+    );
+    const minutes = Math.floor(
+      (totalSeconds % (60 * 60)) / 60
+    );
+    const seconds = totalSeconds % 60;
+
+    countdown.textContent =
+      `${days}日 ` +
+      `${String(hours).padStart(2, "0")}:` +
+      `${String(minutes).padStart(2, "0")}:` +
+      `${String(seconds).padStart(2, "0")}`;
+  }
+
+  updateCountdown();
+  setInterval(updateCountdown, 1000);
+</script>
+
 </body>
+
 </html>
