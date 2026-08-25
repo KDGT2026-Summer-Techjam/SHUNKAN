@@ -3,7 +3,9 @@ from datetime import datetime, timedelta
 
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
-from django.test import TestCase
+from django.core.management import call_command
+from django.test import TestCase, override_settings
+from django.urls import reverse
 from django.utils import timezone
 
 from django.core.files.uploadedfile import SimpleUploadedFile
@@ -11,23 +13,68 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from .models import Room, Category, Task, MomentLog, Photo
 
 
-class HomeViewTests(TestCase):
-    def test_home_page_is_available(self):
+class AuthenticationViewTests(TestCase):
+    def setUp(self):
+        self.password = "test-password-123"
+        self.user = get_user_model().objects.create_user(
+            username="demo-user",
+            password=self.password,
+        )
+
+    def test_home_redirects_to_login(self):
         response = self.client.get("/")
 
-        self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "SHUNKAN")
+        self.assertRedirects(response, reverse("login"))
 
-    def test_home_path_shows_login_and_room_navigation(self):
-        response = self.client.get("/")
+    def test_login_page_is_available(self):
+        response = self.client.get(reverse("login"))
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "ログインしてはじめる")
-        self.assertContains(response, 'href="/rooms/"')
-        self.assertContains(response, "/static/core/css/v8-ui.css")
+        self.assertContains(response, "ログインしてRoomへ進む")
+        self.assertContains(response, "csrfmiddlewaretoken")
+
+    def test_login_redirects_to_rooms(self):
+        response = self.client.post(
+            reverse("login"),
+            {"username": self.user.username, "password": self.password},
+            follow=True,
+        )
+
+        self.assertRedirects(response, reverse("rooms"))
+        self.assertContains(response, "demo-userさんのRoom")
+
+    def test_anonymous_user_is_redirected_to_login(self):
+        response = self.client.get(reverse("rooms"))
+
+        self.assertRedirects(response, f"{reverse('login')}?next={reverse('rooms')}")
+
+    def test_logout_prevents_reopening_protected_page(self):
+        self.client.force_login(self.user)
+
+        response = self.client.post(reverse("logout"), follow=True)
+
+        self.assertRedirects(response, reverse("login"))
+        response = self.client.get(reverse("rooms"))
+        self.assertRedirects(response, f"{reverse('login')}?next={reverse('rooms')}")
+
+
+class SeedDemoCommandTests(TestCase):
+    @override_settings(DEBUG=True)
+    def test_seed_demo_uses_public_credentials_when_debug_is_enabled(self):
+        call_command("seed_demo")
+
+        user = get_user_model().objects.get(username="demo")
+        self.assertTrue(user.check_password("demo"))
 
 
 class UiShellRouteTests(TestCase):
+    def setUp(self):
+        self.user = get_user_model().objects.create_user(
+            username="ui-user",
+            password="test-password-123",
+        )
+        self.client.force_login(self.user)
+
     def test_template_preview_pages_are_available(self):
         for path in (
             "/rooms/",
