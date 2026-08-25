@@ -1,5 +1,6 @@
-# ローカルのエージェント向け指示
+# ローカルのエージェント向け指示・開発日誌
 AGENTS.md
+d/
 
 # Python / Django
 .venv/
@@ -13,3 +14,5 @@ staticfiles/
 output/playwright/
 pyrightconfig.json
 .zed/settings.json
+moment_photos/
+d/

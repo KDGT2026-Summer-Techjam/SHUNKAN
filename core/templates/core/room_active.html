@@ -1,0 +1,76 @@
+{% load static %}
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>旬間 (SHUNKAN) | 2026 夏</title>
+  <link rel="stylesheet" href="{% static 'core/css/v8-ui.css' %}">
+</head>
+<body>
+  <main class="app">
+    {% include "core/includes/auth_header.html" %}
+    <header class="page-header">
+      <a class="back-link" href="{% url 'rooms' %}">← Room一覧</a>
+      <div class="page-header__row">
+        <div>
+          <p class="eyebrow">旬間 (SHUNKAN) / 開催中のRoom</p>
+          <h1>2026 夏</h1>
+        </div>
+        <span class="tag">夏の記録</span>
+      </div>
+    </header>
+
+    <section class="countdown" aria-labelledby="countdown-title">
+      <p class="countdown__label" id="countdown-title">夏の終わりまで</p>
+      <p class="countdown__value">12日 03:24:18</p>
+      <p class="countdown__note">秒まで見えるから、いま撮った瞬間も残せる。</p>
+    </section>
+
+    <section class="section" aria-labelledby="progress-title">
+      <div class="progress-summary">
+        <h2 id="progress-title">このRoomの進み具合</h2>
+        <strong>2 / 4</strong>
+      </div>
+      <div class="progress-bar" aria-label="進捗 50パーセント"><span></span></div>
+    </section>
+
+    <section class="section" aria-labelledby="next-task-title">
+      <div class="section-heading">
+        <h2 id="next-task-title">次にやること</h2>
+        <a class="text-link" href="{% url 'tasks' %}">一覧へ</a>
+      </div>
+      <article class="item-card">
+        <span class="check-button" aria-hidden="true"></span>
+        <div class="item-card__body">
+          <h3 class="item-card__title">友だちと花火を見る</h3>
+          <p class="item-card__meta">8月27日まで ・ 夏の思い出</p>
+        </div>
+      </article>
+    </section>
+
+    <section class="section" aria-labelledby="latest-log-title">
+      <div class="section-heading"><h2 id="latest-log-title">最新のSHUNKAN-log</h2><a class="text-link" href="{% url 'album' %}">アルバムへ</a></div>
+      <article class="item-card"><div class="item-card__body"><h3 class="item-card__title">夕方の風が涼しかった</h3><p class="item-card__meta">8月20日 18:24 ・ 夏の思い出</p></div></article>
+    </section>
+
+    <section class="section" aria-labelledby="moment-action-title">
+      <div class="section-heading">
+        <div>
+          <h2 id="moment-action-title">いま、残しておく</h2>
+          <p class="note">写真がなくても、短い一言だけで残せる。</p>
+        </div>
+      </div>
+      <div class="button-stack">
+        <a class="button" href="{% url 'moments_new' %}">今を残す</a>
+        <a class="button--secondary" href="album.html">夏のアルバムを見る</a>
+      </div>
+    </section>
+  </main>
+  <nav class="footer-nav" aria-label="主要メニュー">
+    <a href="{% url 'rooms' %}">Room</a>
+    <a href="{% url 'tasks' %}">タスク</a>
+    <a href="{% url 'album' %}">アルバム</a>
+  </nav>
+</body>
+</html>

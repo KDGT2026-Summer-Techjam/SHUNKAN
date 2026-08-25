@@ -1,0 +1,56 @@
+{% load static %}
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>旬間 (SHUNKAN) | 今を残す</title>
+  <link rel="stylesheet" href="{% static 'core/css/v8-ui.css' %}">
+</head>
+<body>
+  <main class="app">
+    {% include "core/includes/auth_header.html" %}
+    <header class="page-header">
+      <a class="back-link" href="{% url 'room_active' %}">← 2026 夏</a>
+      <p class="eyebrow">2026 夏 / SHUNKAN-log</p>
+      <h1>いまの瞬間を、<br>未来に渡す。</h1>
+      <p class="lead">写真でも、ひとことでも大丈夫。その時の気持ちを残そう。</p>
+    </header>
+
+    <form class="form-card" action="#" method="post" enctype="multipart/form-data">
+          {% csrf_token %}
+      <div class="field">
+        <label for="body">いま、どんな瞬間？</label>
+        <textarea id="body" name="body" placeholder="例：夕方の風が涼しくて、夏が終わるのを少し感じた。" required></textarea>
+      </div>
+      <div class="field">
+        <label for="occurred-at">いつの記録？</label>
+        <input id="occurred-at" name="occurred_at" type="datetime-local" value="2026-08-20T18:24" required>
+      </div>
+      <div class="field">
+        <label for="category">カテゴリ（任意）</label>
+        <select id="category" name="category"><option value="">選ばない</option><option>夏の思い出</option><option>食べたいもの</option></select>
+        <p class="field-note">Djangoでは、このRoomに属するカテゴリだけを選べます。</p>
+      </div>
+      <div class="field">
+        <label for="task">関連するTask（任意）</label>
+        <select id="task" name="task"><option value="">選ばない</option><option>友だちと花火を見る</option><option>かき氷を食べる</option></select>
+      </div>
+      <fieldset>
+        <legend class="legend">写真を添える（任意・最大3枚）</legend>
+        <p class="field-note">JPEG / PNG / WebP、1枚5MBまで。Djangoでは各写真にひとことを添えられます。</p>
+        <div class="field"><label for="image-1">写真1</label><input id="image-1" name="images" type="file" accept="image/jpeg,image/png,image/webp"><input name="captions" type="text" maxlength="140" placeholder="写真へのひとこと（任意）"></div>
+        <div class="field"><label for="image-2">写真2</label><input id="image-2" name="images" type="file" accept="image/jpeg,image/png,image/webp"><input name="captions" type="text" maxlength="140" placeholder="写真へのひとこと（任意）"></div>
+        <div class="field"><label for="image-3">写真3</label><input id="image-3" name="images" type="file" accept="image/jpeg,image/png,image/webp"><input name="captions" type="text" maxlength="140" placeholder="写真へのひとこと（任意）"></div>
+      </fieldset>
+      <button class="button" type="submit">この瞬間を残す</button>
+      <p class="field-note">静的版では保存しません。通常のSHUNKAN-logは開催中のRoomだけに残せます。終了後の振り返りはAdditional機能です。</p>
+    </form>
+  </main>
+  <nav class="footer-nav" aria-label="主要メニュー">
+    <a href="{% url 'rooms' %}">Room</a>
+    <a href="{% url 'tasks' %}">タスク</a>
+    <a href="{% url 'album' %}">アルバム</a>
+  </nav>
+</body>
+</html>

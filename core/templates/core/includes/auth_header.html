@@ -1,0 +1,18 @@
+<header class="auth-header" aria-label="アカウントメニュー">
+  {% if request.user.is_authenticated %}
+    <p class="auth-header__user">{{ request.user.username }}さん</p>
+    <form action="{% url 'logout' %}" method="post">
+      {% csrf_token %}
+      <button class="auth-header__action" type="submit">ログアウト</button>
+    </form>
+  {% else %}
+    <nav class="auth-header__links" aria-label="認証メニュー">
+      {% if request.resolver_match.url_name != 'login' %}
+        <a class="auth-header__action" href="{% url 'login' %}">ログイン</a>
+      {% endif %}
+      {% if request.resolver_match.url_name != 'signup' %}
+        <a class="auth-header__action" href="{% url 'signup' %}">新規登録</a>
+      {% endif %}
+    </nav>
+  {% endif %}
+</header>

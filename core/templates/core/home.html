@@ -1,53 +1,27 @@
+{% load static %}
 <!doctype html>
 <html lang="ja">
-  <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>旬間 (SHUNKAN)</title>
-  </head>
-  <body>
-    <main>
-      <h1>旬間 <span lang="en">(SHUNKAN)</span></h1>
-      <p>夏の瞬間を残すアプリ</p>
-      <p id="countdown">
-        {% if is_over %}
-          夏の終わりまで: 00日 00:00:00
-        {% else %}
-          夏の終わりまで: {{ days }}日 {{ hours|stringformat:"02d" }}:{{ minutes|stringformat:"02d" }}:{{ seconds|stringformat:"02d" }}
-        {% endif %}
-      </p>
-      <p id="season-status"{% if not is_over %} hidden{% endif %}>夏は終了しました</p>
-    </main>
-    <script>
-      (function () {
-        const deadline = new Date("{{ deadline|date:'c' }}");
-        const countdownEl = document.getElementById("countdown");
-        const seasonStatusEl = document.getElementById("season-status");
-
-        function tick() {
-          const diffMs = deadline.getTime() - Date.now();
-          if (diffMs <= 0) {
-            countdownEl.textContent = "夏の終わりまで: 00日 00:00:00";
-            seasonStatusEl.hidden = false;
-            return;
-          }
-
-          const total = Math.floor(diffMs / 1000);
-          const days = Math.floor(total / 86400);
-          const hours = Math.floor((total % 86400) / 3600);
-          const minutes = Math.floor((total % 3600) / 60);
-          const seconds = total % 60;
-          countdownEl.textContent =
-            "夏の終わりまで: " + days + "日 " +
-            String(hours).padStart(2, "0") + ":" +
-            String(minutes).padStart(2, "0") + ":" +
-            String(seconds).padStart(2, "0");
-          seasonStatusEl.hidden = true;
-        }
-
-        tick();
-        setInterval(tick, 1000);
-      })();
-    </script>
-  </body>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>旬間 (SHUNKAN) | デモログイン</title>
+  <link rel="stylesheet" href="{% static 'core/css/v8-ui.css' %}">
+</head>
+<body>
+  <main class="app centered">
+    {% include "core/includes/auth_header.html" %}
+    <div class="brand-mark" aria-hidden="true">旬</div>
+    <p class="eyebrow">旬間 (SHUNKAN)</p>
+    <h1>今だけの時間を、<br>ちゃんと残そう。</h1>
+    <p class="lead">やりたいこと、できたこと、いまの気持ちを、期限のあるRoomに残す個人用アプリです。</p>
+    <section class="section card" aria-labelledby="demo-login-title">
+      <h2 id="demo-login-title">ログインしてはじめる</h2>
+      <p class="note">静的プロトタイプでは認証しません。Djangoではユーザー登録・ログイン後、自分のRoomだけを表示します。</p>
+      <div class="button-stack">
+        <a class="button" href="{% url 'rooms' %}">ログイン（画面確認）</a>
+        <button class="button--secondary" type="button" disabled>ユーザー登録</button>
+      </div>
+    </section>
+  </main>
+</body>
 </html>
