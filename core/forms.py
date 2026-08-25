@@ -1,6 +1,43 @@
 from django import forms
 
-from .models import Room
+from .models import MomentLog, Photo, Room, Task
+
+
+class RoomForm(forms.ModelForm):
+    class Meta:
+        model = Room
+        fields = ["name", "starts_at", "ends_at"]
+        widgets = {
+            "name": forms.TextInput(
+                attrs={"placeholder": "例：文化祭まで"},
+            ),
+            "starts_at": forms.DateTimeInput(
+                format="%Y-%m-%dT%H:%M",
+                attrs={"type": "datetime-local"},
+            ),
+            "ends_at": forms.DateTimeInput(
+                format="%Y-%m-%dT%H:%M",
+                attrs={"type": "datetime-local"},
+            ),
+        }
+
+
+class TaskUpdateForm(forms.ModelForm):
+    class Meta:
+        model = Task
+        fields = ("title", "due_date")
+
+
+class MomentLogUpdateForm(forms.ModelForm):
+    class Meta:
+        model = MomentLog
+        fields = ("body",)
+
+
+class PhotoUpdateForm(forms.ModelForm):
+    class Meta:
+        model = Photo
+        fields = ("caption",)
 
 
 class RoomForm(forms.ModelForm):

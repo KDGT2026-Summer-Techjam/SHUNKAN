@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8">
+    <title>{{ heading }}</title>
+  </head>
+  <body>
+    <h1>{{ heading }}</h1>
+    <ul>
+      {% for item in items %}
+        <li>{{ item }}</li>
+      {% empty %}
+        <li>まだありません</li>
+      {% endfor %}
+    </ul>
+  </body>
+</html>
