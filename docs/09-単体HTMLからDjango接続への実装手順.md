@@ -4,12 +4,13 @@
 
 画面案は `core/templates/core/` に置き、Django Templatesとして表示する。画面構造、文言、フォーム項目、画面間の導線を確認したうえで、対応するIssueの範囲でデータ表示、保存処理、認証、CSS、JavaScriptを段階的に接続する。
 
-現在は `{% load static %}`、`{% static %}`、`{% url %}`、POSTフォームの `{% csrf_token %}` を接続済みである。Django標準Authによるログイン・ログアウトと、未ログイン利用者をRoom関連画面からログイン画面へ戻す制御も実装済みである。開発用の `DEBUG=True` 環境では `seed_demo` が公開デモアカウント `demo / demo` を作成する。Roomの実データ表示、Room所有者による取得制限、保存処理、Room状態による操作制御は未実装であり、画面が表示できることは機能実装の完了を表さない。
+現在は `{% load static %}`、`{% static %}`、`{% url %}`、POSTフォームの `{% csrf_token %}` を接続済みである。Django標準Authによる新規登録・ログイン・ログアウトと、未ログイン利用者をRoom関連画面からログイン画面へ戻す制御も実装済みである。開発用の `DEBUG=True` 環境では `seed_demo` が公開デモアカウント `demo / demo` を作成する。Roomの実データ表示、Room所有者による取得制限、保存処理、Room状態による操作制御は未実装であり、画面が表示できることは機能実装の完了を表さない。
 
 ## 現在の単体HTML
 
 | ファイル | 画面の目的 | Django化後の候補URL |
 | --- | --- | --- |
+| `core/templates/core/signup.html` | 新規登録画面 | `/accounts/signup/` |
 | `core/templates/core/login.html` | ログイン画面 | `/accounts/login/` |
 | `core/templates/core/home.html` | ログイン画面へのリダイレクト | `/` |
 | `core/templates/core/rooms.html` | 自分のRoom一覧とRoom作成 | `/rooms/` |

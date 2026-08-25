@@ -31,7 +31,37 @@ class AuthenticationViewTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "ログインしてRoomへ進む")
+        self.assertContains(response, 'href="/accounts/signup/"')
         self.assertContains(response, "csrfmiddlewaretoken")
+
+    def test_signup_creates_a_user_and_logs_in(self):
+        response = self.client.post(
+            reverse("signup"),
+            {
+                "username": "new-user",
+                "password1": "safe-test-password-123",
+                "password2": "safe-test-password-123",
+            },
+        )
+
+        self.assertRedirects(response, reverse("rooms"))
+        user = get_user_model().objects.get(username="new-user")
+        self.assertTrue(user.check_password("safe-test-password-123"))
+        self.assertEqual(self.client.session.get("_auth_user_id"), str(user.pk))
+
+    def test_signup_shows_errors_without_creating_a_user(self):
+        response = self.client.post(
+            reverse("signup"),
+            {
+                "username": self.user.username,
+                "password1": "safe-test-password-123",
+                "password2": "safe-test-password-123",
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.context["form"].errors["username"])
+        self.assertEqual(get_user_model().objects.count(), 1)
 
     def test_login_redirects_to_rooms(self):
         response = self.client.post(

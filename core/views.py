@@ -1,9 +1,23 @@
+from django.contrib.auth import login
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth.forms import UserCreationForm
 from django.shortcuts import redirect, render
 
 
 def home(request):
     return redirect("login")
+
+
+def signup(request):
+    if request.method == "POST":
+        form = UserCreationForm(request.POST)
+        if form.is_valid():
+            user = form.save()
+            login(request, user)
+            return redirect("rooms")
+    else:
+        form = UserCreationForm()
+    return render(request, "core/signup.html", {"form": form})
 
 
 @login_required
