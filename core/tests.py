@@ -88,6 +88,56 @@ class AuthenticationViewTests(TestCase):
         self.assertRedirects(response, f"{reverse('login')}?next={reverse('rooms')}")
 
 
+class RoomViewTests(TestCase):
+    def setUp(self):
+        self.owner = get_user_model().objects.create_user(
+            username="room-owner",
+            password="test-password-123",
+        )
+        self.other_user = get_user_model().objects.create_user(
+            username="other-user",
+            password="test-password-123",
+        )
+        self.owner_room = Room.objects.create(
+            owner=self.owner,
+            name="自分のRoom",
+            starts_at=timezone.make_aware(datetime(2026, 8, 20, 12, 0, 0)),
+            ends_at=timezone.make_aware(datetime(2026, 8, 30, 12, 0, 0)),
+        )
+        self.other_room = Room.objects.create(
+            owner=self.other_user,
+            name="他人のRoom",
+            starts_at=timezone.make_aware(datetime(2026, 8, 20, 12, 0, 0)),
+            ends_at=timezone.make_aware(datetime(2026, 8, 30, 12, 0, 0)),
+        )
+        self.client.force_login(self.owner)
+
+    def test_room_list_shows_only_rooms_owned_by_the_current_user(self):
+        response = self.client.get(reverse("rooms"))
+
+        self.assertContains(response, "自分のRoom")
+        self.assertNotContains(response, "他人のRoom")
+
+    def test_room_creation_assigns_the_current_user_as_owner(self):
+        response = self.client.post(
+            reverse("rooms"),
+            {
+                "name": "新しいRoom",
+                "starts_at": "2026-08-20T12:00",
+                "ends_at": "2026-08-30T12:00",
+            },
+        )
+
+        self.assertRedirects(response, reverse("rooms"))
+        room = Room.objects.get(name="新しいRoom")
+        self.assertEqual(room.owner, self.owner)
+
+    def test_room_detail_rejects_another_users_room(self):
+        response = self.client.get(reverse("room_detail", args=[self.other_room.pk]))
+
+        self.assertEqual(response.status_code, 404)
+
+
 class SeedDemoCommandTests(TestCase):
     @override_settings(DEBUG=True)
     def test_seed_demo_uses_public_credentials_when_debug_is_enabled(self):
