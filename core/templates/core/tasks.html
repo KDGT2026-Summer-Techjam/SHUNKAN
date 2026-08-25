@@ -1,35 +1,71 @@
-{% extends "core/base.html" %}
+{% load static %}
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>旬間 (SHUNKAN) | タスク</title>
+  <link rel="stylesheet" href="{% static 'core/css/v8-ui.css' %}">
+</head>
+<body>
+  <main class="app">
+    <header class="page-header">
+      <a class="back-link" href="{% url 'room_active' %}">← 2026 夏</a>
+      <p class="eyebrow">2026 夏 / Task</p>
+      <h1>夏に、あと<br>何をしておこう。</h1>
+    </header>
 
-{% block title %}旬間 | タスク{% endblock %}
+    <section class="form-card" aria-labelledby="task-form-title">
+      <h2 id="task-form-title">タスクを追加する</h2>
+      <form action="#" method="post">
+              {% csrf_token %}
+        <div class="field">
+          <label for="title">やりたいこと</label>
+          <input id="title" name="title" type="text" placeholder="例：夜の海へ行く" required>
+        </div>
+        <div class="field">
+          <label for="due-date">いつまでにする？</label>
+          <input id="due-date" name="due_date" type="date">
+        </div>
+        <div class="field">
+          <label for="category">カテゴリ</label>
+          <select id="category" name="category">
+            <option value="">選ばない</option>
+            <option value="summer-memory">夏の思い出</option>
+            <option value="food">食べたいもの</option>
+          </select>
+        </div>
+        <button class="button" type="submit">タスクに追加する</button>
+      </form>
+      <p class="field-note">静的版では保存しません。DjangoではPOSTで保存し、カテゴリと期限がこのRoomに属することを検証します。</p>
+    </section>
 
-{% block content %}
-<header class="page-header">
-  <h1 class="page-header__title">タスク</h1>
-  <p class="page-header__subtitle">この夏、なにしたい？</p>
-</header>
+    <section class="section" aria-labelledby="active-task-title">
+      <div class="section-heading"><h2 id="active-task-title">これからやること</h2><span class="meta">2件</span></div>
+      <div class="item-list">
+        <article class="item-card">
+          <button class="check-button" aria-label="友だちと花火を見るを完了にする" type="button">完了</button>
+          <div class="item-card__body"><h3 class="item-card__title">友だちと花火を見る</h3><p class="item-card__meta">8月27日まで ・ 夏の思い出</p><p class="field-note">Djangoでは完了時刻を保存し、任意で思い出メモと写真を残せます。</p><div class="button-stack"><button class="button--quiet" type="button">編集</button><button class="button--quiet" type="button">削除</button></div></div>
+        </article>
+        <article class="item-card">
+          <button class="check-button" aria-label="かき氷を食べるを完了にする" type="button">完了</button>
+          <div class="item-card__body"><h3 class="item-card__title">かき氷を食べる</h3><p class="item-card__meta">8月30日まで ・ 食べたいもの</p></div>
+        </article>
+      </div>
+    </section>
 
-<section class="progress" aria-label="今の進捗">
-  <div class="progress__summary">
-    <span>今の進捗</span>
-    <strong>0 / 0</strong>
-  </div>
-  <div class="progress__bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
-    <div class="progress__value" style="width: 0%"></div>
-  </div>
-</section>
-
-<section class="task-section" aria-labelledby="task-list-title">
-  <div class="task-toolbar">
-    <h2 id="task-list-title">今月のタスク</h2>
-    <div class="task-toolbar__filters" aria-label="タスク操作">
-      <button class="chip" type="button" disabled>完了</button>
-      <button class="chip" type="button" disabled>未完了</button>
-    </div>
-  </div>
-  <div class="empty-state">
-    <p>まだタスクがありません。</p>
-    <p>タスク登録と完了切替は、データ実装後にここへ表示されます。</p>
-  </div>
-  <button class="add-button" type="button" disabled aria-label="タスクを追加">＋</button>
-</section>
-{% endblock %}
+    <section class="section" aria-labelledby="completed-task-title">
+      <div class="section-heading"><h2 id="completed-task-title">できたこと</h2><span class="meta">2件</span></div>
+      <article class="item-card">
+        <button class="check-button check-button--done" aria-label="夕方の散歩を未完了に戻す" type="button">✓</button>
+        <div class="item-card__body"><h3 class="item-card__title item-card__title--completed">夕方の散歩をする</h3><p class="item-card__meta">8月19日 18:12に完了</p><div class="button-stack"><button class="button--quiet" type="button">未完了に戻す</button><button class="button--quiet" type="button">編集</button><button class="button--quiet" type="button">削除</button></div></div>
+      </article>
+    </section>
+  </main>
+  <nav class="footer-nav" aria-label="主要メニュー">
+    <a href="{% url 'rooms' %}">Room</a>
+    <a href="{% url 'tasks' %}" aria-current="page">タスク</a>
+    <a href="{% url 'album' %}">アルバム</a>
+  </nav>
+</body>
+</html>

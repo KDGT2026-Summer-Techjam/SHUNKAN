@@ -1,0 +1,62 @@
+{% load static %}
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>旬間 (SHUNKAN) | Roomを選ぶ</title>
+  <link rel="stylesheet" href="{% static 'core/css/v8-ui.css' %}">
+</head>
+<body>
+  <main class="app">
+    <header class="page-header">
+      <p class="eyebrow">旬間 (SHUNKAN) / デモアカウント</p>
+      <h1>いま過ごしている、<br>旬を選ぶ。</h1>
+      <p class="lead">Roomごとに残り時間、タスク、写真アルバムは独立しています。</p>
+    </header>
+
+    <section class="room-list" aria-label="Room一覧">
+      <a class="room-card" href="{% url 'room_active' %}">
+        <div class="room-card__top">
+          <div>
+            <p class="eyebrow">開催中</p>
+            <h2 class="room-card__title">2026 夏</h2>
+          </div>
+          <span class="tag">夏の記録</span>
+        </div>
+        <p class="room-card__time">残り 12日 03:24:18</p>
+        <p class="meta">終了: 2026年8月31日 23:59:59</p>
+      </a>
+
+      <a class="room-card" href="{% url 'room_active' %}#techjam-2026">
+        <div class="room-card__top">
+          <div>
+            <p class="eyebrow">開催中</p>
+            <h2 class="room-card__title">TechJam 2026</h2>
+          </div>
+          <span class="tag">制作期間</span>
+        </div>
+        <p class="room-card__time">残り 8日 18:42:03</p>
+        <p class="meta">終了: 2026年8月28日 18:00</p>
+      </a>
+    </section>
+
+    <section class="section form-card" aria-labelledby="room-create-title">
+      <h2 id="room-create-title">新しいRoomを作る</h2>
+      <p class="note">Djangoではログイン中の利用者のRoomとして保存し、開始日時より後の終了日時だけを受け付けます。</p>
+      <form class="form-card" action="#" method="post">
+              {% csrf_token %}
+        <div class="field"><label for="room-name">Room名</label><input id="room-name" name="name" maxlength="50" placeholder="例：文化祭まで" required></div>
+        <div class="field"><label for="starts-at">開始日時</label><input id="starts-at" name="starts_at" type="datetime-local" required></div>
+        <div class="field"><label for="ends-at">終了日時</label><input id="ends-at" name="ends_at" type="datetime-local" required></div>
+        <button class="button" type="button">Roomを作成する</button>
+      </form>
+    </section>
+  </main>
+  <nav class="footer-nav" aria-label="主要メニュー">
+    <a href="{% url 'rooms' %}" aria-current="page">Room</a>
+    <a href="{% url 'tasks' %}">タスク</a>
+    <a href="{% url 'album' %}">アルバム</a>
+  </nav>
+</body>
+</html>

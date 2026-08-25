@@ -28,6 +28,18 @@ def home(request):
     return render(request, "core/home.html", remaining_until_summer_end())
 
 
+def rooms(request):
+    return render(request, "core/rooms.html")
+
+
+def room_active(request):
+    return render(request, "core/room_active.html")
+
+
+def room_ended(request):
+    return render(request, "core/room_ended.html")
+
+
 def moments_new(request):
     return render(request, "core/moments_new.html")
 
