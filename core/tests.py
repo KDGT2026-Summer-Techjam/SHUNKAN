@@ -1,6 +1,5 @@
 from datetime import datetime, timedelta
 
-from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
@@ -19,44 +18,40 @@ class HomeViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "SHUNKAN")
 
-    def test_home_path_shows_remaining_time_in_countdown_card(self):
-        frozen = timezone.make_aware(datetime(2026, 8, 20, 12, 0, 0))
-
-        with patch("core.views.timezone.localtime", return_value=frozen):
-            response = self.client.get("/")
+    def test_home_path_shows_login_and_room_navigation(self):
+        response = self.client.get("/")
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "旬間")
-        self.assertContains(response, "この夏を、")
-        self.assertContains(response, "夏の終わりまで")
-        self.assertContains(response, "11日 11時間 59分 59秒")
-        content = response.content.decode()
-        tagline_pos = content.index("この夏を、")
-        countdown_pos = content.index("夏の終わりまで")
-        self.assertLess(tagline_pos, countdown_pos)
+        self.assertContains(response, "ログインしてはじめる")
+        self.assertContains(response, 'href="/rooms/"')
+        self.assertContains(response, "/static/core/css/v8-ui.css")
 
 
 class UiShellRouteTests(TestCase):
-    def test_v8_ui_pages_are_available(self):
-        for path in ("/moments/new/", "/tasks/", "/album/"):
+    def test_template_preview_pages_are_available(self):
+        for path in (
+            "/rooms/",
+            "/rooms/active/",
+            "/rooms/ended/",
+            "/moments/new/",
+            "/tasks/",
+            "/album/",
+        ):
             with self.subTest(path=path):
                 response = self.client.get(path)
                 self.assertEqual(response.status_code, 200)
 
-    def test_moments_page_uses_the_imported_visual_assets(self):
-        response = self.client.get("/moments/new/")
-        self.assertContains(response, "今を残す")
-        self.assertContains(response, "fireworks.jpg")
+    def test_album_page_uses_django_static_assets(self):
+        response = self.client.get("/album/")
 
-    def test_home_shows_zero_countdown_after_summer_ends(self):
-        frozen = timezone.make_aware(datetime(2026, 9, 1, 0, 0, 0))
+        self.assertContains(response, "/static/core/images/fireworks.jpg")
+        self.assertContains(response, "/static/core/css/v8-ui.css")
 
-        with patch("core.views.timezone.localtime", return_value=frozen):
-            response = self.client.get("/")
-
-        self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "00日 00:00:00")
-        self.assertContains(response, "夏は終了しました")
+    def test_post_forms_include_csrf_tokens(self):
+        for path in ("/rooms/", "/tasks/", "/moments/new/"):
+            with self.subTest(path=path):
+                response = self.client.get(path)
+                self.assertContains(response, "csrfmiddlewaretoken")
 
 class RoomModelTests(TestCase):
     def setUp(self):

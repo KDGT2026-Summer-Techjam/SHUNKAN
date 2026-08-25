@@ -1,36 +1,64 @@
-{% extends "core/base.html" %}
 {% load static %}
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>旬間 (SHUNKAN) | 夏のアルバム</title>
+  <link rel="stylesheet" href="{% static 'core/css/v8-ui.css' %}">
+</head>
+<body>
+  <main class="app">
+    <header class="page-header">
+      <a class="back-link" href="{% url 'room_active' %}">← 2026 夏</a>
+      <p class="eyebrow">2026 夏 / Album</p>
+      <h1>この夏の、<br>忘れたくない瞬間。</h1>
+      <p class="lead">写真だけでなく、その時に残したひとことも一緒に見返せる。</p>
+    </header>
 
-{% block title %}旬間 | 夏のアルバム{% endblock %}
+    <section class="section" aria-labelledby="album-progress-title">
+      <div class="progress-summary"><h2 id="album-progress-title">このRoomの進み具合</h2><strong>2 / 4</strong></div>
+      <div class="progress-bar" aria-label="進捗 50パーセント"><span></span></div>
+    </section>
 
-{% block content %}
-<header class="page-header">
-  <h1 class="page-header__title">夏のアルバム</h1>
-  <p class="page-header__subtitle">この夏を振り返ろう</p>
-</header>
+    <section class="section" aria-labelledby="completed-title">
+      <div class="section-heading"><h2 id="completed-title">できたこと</h2><span class="meta">完了Task</span></div>
+      <article class="item-card"><span class="check-button check-button--done" aria-hidden="true">✓</span><div class="item-card__body"><h3 class="item-card__title item-card__title--completed">夕方の散歩をする</h3><p class="item-card__meta">8月19日 18:12に完了</p></div></article>
+    </section>
 
-<section class="progress" aria-label="今の進捗">
-  <div class="progress__summary">
-    <span>今の進捗</span>
-    <strong>0 / 0</strong>
-  </div>
-  <div class="progress__bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
-    <div class="progress__value" style="width: 0%"></div>
-  </div>
-</section>
+    <section class="section" aria-labelledby="log-title">
+      <div class="section-heading"><h2 id="log-title">残した瞬間</h2><span class="meta">写真なしの記録も表示</span></div>
+      <article class="item-card"><div class="item-card__body"><h3 class="item-card__title">夕方の風が涼しかった</h3><p class="item-card__meta">8月18日 17:48 ・ 夏の思い出</p></div></article>
+    </section>
 
-<section class="album-section" aria-labelledby="album-title">
-  <h2 id="album-title">夏の記録</h2>
-  <article class="album-preview">
-    <img src="{% static 'core/images/sea.jpg' %}" alt="夏の海">
-    <div>
-      <p class="album-preview__tag">・夏の思い出</p>
-      <p class="album-preview__text">完了したタスクと残した瞬間が、ここに並びます。</p>
-    </div>
-  </article>
-  <div class="empty-state">
-    <p>まだ記録がありません。</p>
-    <p>季節の瞬間を残すと、ここに思い出が並びます。</p>
-  </div>
-</section>
-{% endblock %}
+    <section class="section album-grid" aria-label="夏のアルバム">
+      <article class="album-card">
+        <img src="{% static 'core/images/fireworks.jpg' %}" alt="夜空に上がる花火">
+        <div class="album-card__body"><p class="album-card__caption">今年初めての手持ち花火</p><p class="meta">8月20日 18:24 ・ 友だちと花火を見る</p></div>
+      </article>
+      <article class="album-card">
+        <img src="{% static 'core/images/kakigori.jpg' %}" alt="かき氷">
+        <div class="album-card__body"><p class="album-card__caption">溶ける前に急いで食べた</p><p class="meta">8月19日 15:10 ・ かき氷を食べる</p></div>
+      </article>
+      <article class="album-card">
+        <img src="{% static 'core/images/sea.jpg' %}" alt="夏の海">
+        <div class="album-card__body"><p class="album-card__caption">夕方の海は思ったより静か</p><p class="meta">8月18日 17:48</p></div>
+      </article>
+      <article class="album-card">
+        <img src="{% static 'core/images/festival.jpg' %}" alt="夏祭りの風景">
+        <div class="album-card__body"><p class="album-card__caption">帰り道まで、夏祭りだった。</p><p class="meta">8月16日 20:35</p></div>
+      </article>
+    </section>
+
+    <section class="section empty-state" aria-labelledby="empty-album-title">
+      <h2 id="empty-album-title">記録がまだないRoomでは</h2>
+      <p>写真がなくても最初のひとことを残すと、ここにRoomごとのアルバムとして並びます。この例では、上の記録があるため表示しません。</p>
+    </section>
+  </main>
+  <nav class="footer-nav" aria-label="主要メニュー">
+    <a href="{% url 'rooms' %}">Room</a>
+    <a href="{% url 'tasks' %}">タスク</a>
+    <a href="{% url 'album' %}" aria-current="page">アルバム</a>
+  </nav>
+</body>
+</html>
