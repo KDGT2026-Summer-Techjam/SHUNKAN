@@ -35,7 +35,7 @@ def rooms(request):
             room = form.save(commit=False)
             room.owner = request.user
             room.save()
-            return redirect("rooms")
+            return redirect("room_detail", room_id=room.pk)
     else:
         form = RoomForm()
 
