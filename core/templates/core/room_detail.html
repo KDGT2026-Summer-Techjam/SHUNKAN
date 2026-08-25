@@ -1,0 +1,36 @@
+{% load static %}
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>旬間 (SHUNKAN) | {{ room.name }}</title>
+  <link rel="stylesheet" href="{% static 'core/css/v8-ui.css' %}">
+</head>
+<body>
+  <main class="app">
+    {% include "core/includes/auth_header.html" %}
+    <header class="page-header">
+      <a class="back-link" href="{% url 'rooms' %}">← Room一覧</a>
+      <p class="eyebrow">{{ request.user.username }}さんのRoom</p>
+      <h1>{{ room.name }}</h1>
+      <p class="lead">このRoomの記録は、{{ request.user.username }}さんだけが利用できます。</p>
+    </header>
+
+    <section class="form-card" aria-labelledby="room-period-title">
+      <h2 id="room-period-title">期間</h2>
+      <div class="field">
+        <span class="field-note">開始日時</span>
+        <strong>{{ room.starts_at|date:"Y年n月j日 H:i" }}</strong>
+      </div>
+      <div class="field">
+        <span class="field-note">終了日時</span>
+        <strong>{{ room.ends_at|date:"Y年n月j日 H:i" }}</strong>
+      </div>
+      <p class="field-note">
+        {% if room.ends_at > now %}開催中のRoomです。Task・SHUNKAN-logの実データ表示は次の実装で接続します。{% else %}終了済みのRoomです。閲覧専用の制御はRoom状態実装で接続します。{% endif %}
+      </p>
+    </section>
+  </main>
+</body>
+</html>

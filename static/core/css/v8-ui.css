@@ -447,6 +447,44 @@ button:disabled {
   border: 0;
 }
 
+.auth-header {
+  display: flex;
+  min-height: 44px;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-bottom: 24px;
+}
+
+.auth-header__links,
+.auth-header form {
+  display: flex;
+  gap: 8px;
+  margin: 0;
+}
+
+.auth-header__user {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.auth-header__action {
+  display: inline-flex;
+  min-height: 40px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-pill);
+  padding: 8px 12px;
+  color: var(--ink);
+  background: var(--surface);
+  font-size: 13px;
+  font-weight: 700;
+  text-decoration: none;
+}
+
 @media (min-width: 700px) {
   body {
     padding: 32px 0;

@@ -9,6 +9,7 @@
 </head>
 <body>
   <main class="app centered">
+    {% include "core/includes/auth_header.html" %}
     <div class="brand-mark" aria-hidden="true">旬</div>
     <p class="eyebrow">旬間 (SHUNKAN)</p>
     <h1>今だけの時間を、<br>ちゃんと残そう。</h1>
@@ -35,6 +36,7 @@
         <button class="button" type="submit">ログインしてRoomへ進む</button>
       </form>
       <p class="field-note">開発用デモアカウントは <strong>demo / demo</strong> です。公開環境では使用しません。</p>
+      <a class="button--secondary" href="{% url 'signup' %}">新規登録する</a>
     </section>
   </main>
 </body>
