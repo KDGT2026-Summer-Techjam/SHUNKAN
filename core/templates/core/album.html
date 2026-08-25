@@ -11,8 +11,8 @@
   <main class="app">
     {% include "core/includes/auth_header.html" %}
     <header class="page-header">
-      <a class="back-link" href="{% url 'room_active' %}">← 2026 夏</a>
-      <p class="eyebrow">2026 夏 / Album</p>
+      <a class="back-link" href="{% url 'room_active' room_id=room.id %}">← {{ room.name }}</a>
+      <p class="eyebrow">{{ room.name }} / Album</p>
       <h1>この夏の、<br>忘れたくない瞬間。</h1>
       <p class="lead">写真だけでなく、その時に残したひとことも一緒に見返せる。</p>
     </header>
@@ -58,8 +58,8 @@
   </main>
   <nav class="footer-nav" aria-label="主要メニュー">
     <a href="{% url 'rooms' %}">Room</a>
-    <a href="{% url 'tasks' %}">タスク</a>
-    <a href="{% url 'album' %}" aria-current="page">アルバム</a>
+    <a href="{% url 'tasks' room_id=room.id %}">タスク</a>
+    <a href="{% url 'room_album' room_id=room.id %}" aria-current="page">アルバム</a>
   </nav>
 </body>
 </html>

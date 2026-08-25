@@ -4,21 +4,21 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>旬間 (SHUNKAN) | 今を残す</title>
+  <title>旬間 (SHUNKAN) | {{ room.name }} | 今を残す</title>
   <link rel="stylesheet" href="{% static 'core/css/v8-ui.css' %}">
 </head>
 <body>
   <main class="app">
     {% include "core/includes/auth_header.html" %}
     <header class="page-header">
-      <a class="back-link" href="{% url 'room_active' %}">← 2026 夏</a>
-      <p class="eyebrow">2026 夏 / SHUNKAN-log</p>
+      <a class="back-link" href="{% url 'room_active' room.pk %}">← {{ room.name }}</a>
+      <p class="eyebrow">{{ room.name }} / SHUNKAN-log</p>
       <h1>いまの瞬間を、<br>未来に渡す。</h1>
       <p class="lead">写真でも、ひとことでも大丈夫。その時の気持ちを残そう。</p>
     </header>
 
     <form class="form-card" action="#" method="post" enctype="multipart/form-data">
-          {% csrf_token %}
+      {% csrf_token %}
       <div class="field">
         <label for="body">いま、どんな瞬間？</label>
         <textarea id="body" name="body" placeholder="例：夕方の風が涼しくて、夏が終わるのを少し感じた。" required></textarea>
@@ -48,9 +48,9 @@
     </form>
   </main>
   <nav class="footer-nav" aria-label="主要メニュー">
-    <a href="{% url 'rooms' %}">Room</a>
-    <a href="{% url 'tasks' %}">タスク</a>
-    <a href="{% url 'album' %}">アルバム</a>
+    <a href="{% url 'room_detail' room.pk %}">Room</a>
+    <a href="{% url 'tasks' room.pk %}">タスク</a>
+    <a href="{% url 'room_album' room.pk %}">アルバム</a>
   </nav>
 </body>
 </html>

@@ -11,15 +11,15 @@
   <main class="app">
     {% include "core/includes/auth_header.html" %}
     <header class="page-header">
-      <a class="back-link" href="{% url 'room_active' %}">← 2026 夏</a>
-      <p class="eyebrow">2026 夏 / Task</p>
+      <a class="back-link" href="{% url 'room_active' room_id=room.id %}">← {{ room.name }}</a>
+      <p class="eyebrow">{{ room.name }} / Task</p>
       <h1>夏に、あと<br>何をしておこう。</h1>
     </header>
 
     <section class="form-card" aria-labelledby="task-form-title">
       <h2 id="task-form-title">タスクを追加する</h2>
       <form action="#" method="post">
-              {% csrf_token %}
+        {% csrf_token %}
         <div class="field">
           <label for="title">やりたいこと</label>
           <input id="title" name="title" type="text" placeholder="例：夜の海へ行く" required>
@@ -64,9 +64,10 @@
     </section>
   </main>
   <nav class="footer-nav" aria-label="主要メニュー">
-    <a href="{% url 'rooms' %}">Room</a>
-    <a href="{% url 'tasks' %}" aria-current="page">タスク</a>
-    <a href="{% url 'album' %}">アルバム</a>
+    <a href="{% url 'room_detail' room.pk %}">Room</a>
+    <a href="{% url 'tasks' room_id=room.id %}" aria-current="page">タスク</a>
+    <a href="{% url 'room_album' room_id=room.id %}">アルバム</a>
   </nav>
+
 </body>
 </html>

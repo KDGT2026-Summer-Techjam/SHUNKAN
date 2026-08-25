@@ -32,5 +32,10 @@
       </p>
     </section>
   </main>
+  <nav class="footer-nav" aria-label="主要メニュー">
+    <a href="{% url 'room_detail' room.pk %}" aria-current="page">Room</a>
+    <a href="{% url 'tasks' room_id=room.id %}">タスク</a>
+    <a href="{% url 'room_album' room_id=room.id %}">アルバム</a>
+  </nav>
 </body>
 </html>
