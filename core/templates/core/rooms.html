@@ -10,7 +10,7 @@
 <body>
   <main class="app">
     <header class="page-header">
-      <p class="eyebrow">旬間 (SHUNKAN) / デモアカウント</p>
+      <p class="eyebrow">旬間 (SHUNKAN) / {{ request.user.username }}さんのRoom</p>
       <h1>いま過ごしている、<br>旬を選ぶ。</h1>
       <p class="lead">Roomごとに残り時間、タスク、写真アルバムは独立しています。</p>
     </header>
@@ -52,6 +52,10 @@
         <button class="button" type="button">Roomを作成する</button>
       </form>
     </section>
+    <form action="{% url 'logout' %}" method="post">
+      {% csrf_token %}
+      <button class="button--quiet" type="submit">ログアウト</button>
+    </form>
   </main>
   <nav class="footer-nav" aria-label="主要メニュー">
     <a href="{% url 'rooms' %}" aria-current="page">Room</a>

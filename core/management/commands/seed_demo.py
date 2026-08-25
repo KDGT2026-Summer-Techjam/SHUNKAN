@@ -1,7 +1,9 @@
+import os
 from datetime import datetime, time
 
+from django.conf import settings
 from django.contrib.auth import get_user_model
-from django.core.management.base import BaseCommand
+from django.core.management.base import BaseCommand, CommandError
 from django.utils import timezone
 
 from core.models import Category, MomentLog, Room, Task
@@ -11,14 +13,23 @@ class Command(BaseCommand):
     help = "開発用のデモデータを投入します"
 
     def handle(self, *args, **options):
-        User = get_user_model()
+        password = os.environ.get("DEMO_USER_PASSWORD")
+        if not password and settings.DEBUG:
+            password = "demo"
+        if not password:
+            raise CommandError(
+                "DEBUG=False では DEMO_USER_PASSWORD を設定してから seed_demo を実行してください。"
+            )
 
+        User = get_user_model()
         user, _ = User.objects.get_or_create(
             username="demo",
             defaults={
                 "email": "demo@example.com",
             },
         )
+        user.set_password(password)
+        user.save(update_fields=["password"])
 
         summer_room, _ = Room.objects.update_or_create(
             owner=user,
