@@ -159,6 +159,307 @@ class RoomViewTests(TestCase):
 
         self.assertEqual(response.status_code, 404)
 
+    def test_owner_can_update_own_room(self):
+        response = self.client.post(
+            reverse("room_update", args=[self.owner_room.pk]),
+            {
+                "name": "更新したRoom",
+                "starts_at": "2026-08-20T12:00",
+                "ends_at": "2026-08-30T12:00",
+            },
+        )
+
+        self.assertRedirects(
+            response, reverse("room_detail", args=[self.owner_room.pk])
+        )
+        self.owner_room.refresh_from_db()
+        self.assertEqual(self.owner_room.name, "更新したRoom")
+
+    def test_cannot_update_another_users_room(self):
+        response = self.client.post(
+            reverse("room_update", args=[self.other_room.pk]),
+            {
+                "name": "書き換え",
+                "starts_at": "2026-08-20T12:00",
+                "ends_at": "2026-08-30T12:00",
+            },
+        )
+
+        self.assertEqual(response.status_code, 404)
+        self.other_room.refresh_from_db()
+        self.assertEqual(self.other_room.name, "他人のRoom")
+
+    def test_owner_can_delete_own_room(self):
+        response = self.client.post(reverse("room_delete", args=[self.owner_room.pk]))
+
+        self.assertRedirects(response, reverse("rooms"))
+        self.assertFalse(Room.objects.filter(pk=self.owner_room.pk).exists())
+
+    def test_cannot_delete_another_users_room(self):
+        response = self.client.post(reverse("room_delete", args=[self.other_room.pk]))
+
+        self.assertEqual(response.status_code, 404)
+        self.assertTrue(Room.objects.filter(pk=self.other_room.pk).exists())
+
+
+class TaskOwnerAccessTests(TestCase):
+    def setUp(self):
+        User = get_user_model()
+        self.owner = User.objects.create_user(username="task-owner", password="pass123")
+        self.other = User.objects.create_user(username="task-other", password="pass123")
+        now = timezone.now()
+        self.owned_room = Room.objects.create(
+            owner=self.owner,
+            name="自分のRoom",
+            starts_at=now,
+            ends_at=now + timedelta(days=7),
+        )
+        self.other_room = Room.objects.create(
+            owner=self.other,
+            name="他人のRoom",
+            starts_at=now,
+            ends_at=now + timedelta(days=7),
+        )
+        self.owned_task = Task.objects.create(room=self.owned_room, title="自分のタスク")
+        self.other_task = Task.objects.create(room=self.other_room, title="他人のタスク")
+        self.client.force_login(self.owner)
+
+    def test_list_shows_only_tasks_in_owned_room(self):
+        response = self.client.get(reverse("task_list", args=[self.owned_room.pk]))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "自分のタスク")
+        self.assertNotContains(response, "他人のタスク")
+
+    def test_other_users_task_list_returns_404(self):
+        response = self.client.get(reverse("task_list", args=[self.other_room.pk]))
+
+        self.assertEqual(response.status_code, 404)
+
+    def test_owner_can_update_own_task(self):
+        response = self.client.post(
+            reverse("task_update", args=[self.owned_room.pk, self.owned_task.pk]),
+            {"title": "更新したタスク", "due_date": ""},
+        )
+
+        self.assertRedirects(response, reverse("task_list", args=[self.owned_room.pk]))
+        self.owned_task.refresh_from_db()
+        self.assertEqual(self.owned_task.title, "更新したタスク")
+
+    def test_cannot_update_another_users_task(self):
+        response = self.client.post(
+            reverse("task_update", args=[self.other_room.pk, self.other_task.pk]),
+            {"title": "書き換え", "due_date": ""},
+        )
+
+        self.assertEqual(response.status_code, 404)
+        self.other_task.refresh_from_db()
+        self.assertEqual(self.other_task.title, "他人のタスク")
+
+    def test_cannot_update_another_users_task_via_owned_room_url(self):
+        response = self.client.post(
+            reverse("task_update", args=[self.owned_room.pk, self.other_task.pk]),
+            {"title": "書き換え", "due_date": ""},
+        )
+
+        self.assertEqual(response.status_code, 404)
+        self.other_task.refresh_from_db()
+        self.assertEqual(self.other_task.title, "他人のタスク")
+
+    def test_owner_can_delete_own_task(self):
+        response = self.client.post(
+            reverse("task_delete", args=[self.owned_room.pk, self.owned_task.pk])
+        )
+
+        self.assertRedirects(response, reverse("task_list", args=[self.owned_room.pk]))
+        self.assertFalse(Task.objects.filter(pk=self.owned_task.pk).exists())
+
+    def test_cannot_delete_another_users_task(self):
+        response = self.client.post(
+            reverse("task_delete", args=[self.other_room.pk, self.other_task.pk])
+        )
+
+        self.assertEqual(response.status_code, 404)
+        self.assertTrue(Task.objects.filter(pk=self.other_task.pk).exists())
+
+
+class MomentLogOwnerAccessTests(TestCase):
+    def setUp(self):
+        User = get_user_model()
+        self.owner = User.objects.create_user(username="moment-owner", password="pass123")
+        self.other = User.objects.create_user(username="moment-other", password="pass123")
+        now = timezone.now()
+        self.owned_room = Room.objects.create(
+            owner=self.owner,
+            name="自分のRoom",
+            starts_at=now,
+            ends_at=now + timedelta(days=7),
+        )
+        self.other_room = Room.objects.create(
+            owner=self.other,
+            name="他人のRoom",
+            starts_at=now,
+            ends_at=now + timedelta(days=7),
+        )
+        self.owned_moment = MomentLog.objects.create(
+            room=self.owned_room,
+            body="自分の記録",
+            occurred_at=now,
+        )
+        self.other_moment = MomentLog.objects.create(
+            room=self.other_room,
+            body="他人の記録",
+            occurred_at=now,
+        )
+        self.client.force_login(self.owner)
+
+    def test_list_shows_only_moment_logs_in_owned_room(self):
+        response = self.client.get(reverse("moment_list", args=[self.owned_room.pk]))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "自分の記録")
+        self.assertNotContains(response, "他人の記録")
+
+    def test_other_users_moment_list_returns_404(self):
+        response = self.client.get(reverse("moment_list", args=[self.other_room.pk]))
+
+        self.assertEqual(response.status_code, 404)
+
+    def test_owner_can_update_own_moment_log(self):
+        response = self.client.post(
+            reverse("moment_update", args=[self.owned_room.pk, self.owned_moment.pk]),
+            {"body": "更新した記録"},
+        )
+
+        self.assertRedirects(response, reverse("moment_list", args=[self.owned_room.pk]))
+        self.owned_moment.refresh_from_db()
+        self.assertEqual(self.owned_moment.body, "更新した記録")
+
+    def test_cannot_update_another_users_moment_log(self):
+        response = self.client.post(
+            reverse("moment_update", args=[self.other_room.pk, self.other_moment.pk]),
+            {"body": "書き換え"},
+        )
+
+        self.assertEqual(response.status_code, 404)
+        self.other_moment.refresh_from_db()
+        self.assertEqual(self.other_moment.body, "他人の記録")
+
+    def test_owner_can_delete_own_moment_log(self):
+        response = self.client.post(
+            reverse("moment_delete", args=[self.owned_room.pk, self.owned_moment.pk])
+        )
+
+        self.assertRedirects(response, reverse("moment_list", args=[self.owned_room.pk]))
+        self.assertFalse(MomentLog.objects.filter(pk=self.owned_moment.pk).exists())
+
+    def test_cannot_delete_another_users_moment_log(self):
+        response = self.client.post(
+            reverse("moment_delete", args=[self.other_room.pk, self.other_moment.pk])
+        )
+
+        self.assertEqual(response.status_code, 404)
+        self.assertTrue(MomentLog.objects.filter(pk=self.other_moment.pk).exists())
+
+
+class PhotoOwnerAccessTests(TestCase):
+    def setUp(self):
+        User = get_user_model()
+        self.owner = User.objects.create_user(username="photo-owner", password="pass123")
+        self.other = User.objects.create_user(username="photo-other", password="pass123")
+        now = timezone.now()
+        self.owned_room = Room.objects.create(
+            owner=self.owner,
+            name="自分のRoom",
+            starts_at=now,
+            ends_at=now + timedelta(days=7),
+        )
+        self.other_room = Room.objects.create(
+            owner=self.other,
+            name="他人のRoom",
+            starts_at=now,
+            ends_at=now + timedelta(days=7),
+        )
+        self.owned_moment = MomentLog.objects.create(
+            room=self.owned_room,
+            body="自分の記録",
+            occurred_at=now,
+        )
+        self.other_moment = MomentLog.objects.create(
+            room=self.other_room,
+            body="他人の記録",
+            occurred_at=now,
+        )
+        self.owned_photo = Photo.objects.create(
+            moment_log=self.owned_moment,
+            image=SimpleUploadedFile("mine.jpg", b"fake-image-data", content_type="image/jpeg"),
+            caption="自分の写真",
+        )
+        self.other_photo = Photo.objects.create(
+            moment_log=self.other_moment,
+            image=SimpleUploadedFile("theirs.jpg", b"fake-image-data", content_type="image/jpeg"),
+            caption="他人の写真",
+        )
+        self.client.force_login(self.owner)
+
+    def test_list_shows_only_photos_in_owned_room(self):
+        response = self.client.get(reverse("photo_list", args=[self.owned_room.pk]))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "自分の写真")
+        self.assertNotContains(response, "他人の写真")
+
+    def test_other_users_photo_list_returns_404(self):
+        response = self.client.get(reverse("photo_list", args=[self.other_room.pk]))
+
+        self.assertEqual(response.status_code, 404)
+
+    def test_owner_can_update_own_photo(self):
+        response = self.client.post(
+            reverse("photo_update", args=[self.owned_room.pk, self.owned_photo.pk]),
+            {"caption": "更新した写真"},
+        )
+
+        self.assertRedirects(response, reverse("photo_list", args=[self.owned_room.pk]))
+        self.owned_photo.refresh_from_db()
+        self.assertEqual(self.owned_photo.caption, "更新した写真")
+
+    def test_cannot_update_another_users_photo(self):
+        response = self.client.post(
+            reverse("photo_update", args=[self.other_room.pk, self.other_photo.pk]),
+            {"caption": "書き換え"},
+        )
+
+        self.assertEqual(response.status_code, 404)
+        self.other_photo.refresh_from_db()
+        self.assertEqual(self.other_photo.caption, "他人の写真")
+
+    def test_cannot_update_another_users_photo_via_owned_room_url(self):
+        response = self.client.post(
+            reverse("photo_update", args=[self.owned_room.pk, self.other_photo.pk]),
+            {"caption": "書き換え"},
+        )
+
+        self.assertEqual(response.status_code, 404)
+        self.other_photo.refresh_from_db()
+        self.assertEqual(self.other_photo.caption, "他人の写真")
+
+    def test_owner_can_delete_own_photo(self):
+        response = self.client.post(
+            reverse("photo_delete", args=[self.owned_room.pk, self.owned_photo.pk])
+        )
+
+        self.assertRedirects(response, reverse("photo_list", args=[self.owned_room.pk]))
+        self.assertFalse(Photo.objects.filter(pk=self.owned_photo.pk).exists())
+
+    def test_cannot_delete_another_users_photo(self):
+        response = self.client.post(
+            reverse("photo_delete", args=[self.other_room.pk, self.other_photo.pk])
+        )
+
+        self.assertEqual(response.status_code, 404)
+        self.assertTrue(Photo.objects.filter(pk=self.other_photo.pk).exists())
+
 
 class SeedDemoCommandTests(TestCase):
     @override_settings(DEBUG=True)
