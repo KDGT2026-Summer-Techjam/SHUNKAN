@@ -117,6 +117,7 @@ class UiShellRouteTests(TestCase):
             with self.subTest(path=path):
                 response = self.client.get(path)
                 self.assertEqual(response.status_code, 200)
+                self.assertContains(response, "ログアウト")
 
     def test_album_page_uses_django_static_assets(self):
         response = self.client.get("/album/")
