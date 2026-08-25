@@ -24,6 +24,7 @@ def signup(request):
             return redirect("rooms")
     else:
         form = UserCreationForm()
+
     return render(request, "core/signup.html", {"form": form})
 
 
@@ -61,25 +62,45 @@ def room_detail(request, room_id):
 
 
 @login_required
-def room_active(request):
-    return render(request, "core/room_active.html")
+def room_active(request, room_id):
+    room = get_object_or_404(Room, pk=room_id, owner=request.user)
+    return render(
+        request,
+        "core/room_active.html",
+        {"room": room, "now": timezone.now()},
+    )
 
 
 @login_required
-def room_ended(request):
-    return render(request, "core/room_ended.html")
+def moments_new(request, room_id):
+    room = get_object_or_404(Room, pk=room_id, owner=request.user)
+    return render(
+        request,
+        "core/moments_new.html",
+        {"room": room, "now": timezone.now()},
+    )
 
 
 @login_required
-def moments_new(request):
-    return render(request, "core/moments_new.html")
-
-
-@login_required
-def tasks(request):
-    return render(request, "core/tasks.html")
-
+def tasks(request, room_id):
+    room = get_object_or_404(Room, pk=room_id, owner=request.user)
+    return render(request, "core/tasks.html", {"room": room})
 
 @login_required
-def album(request):
-    return render(request, "core/album.html")
+def album(request, room_id):
+    room = get_object_or_404(Room, pk=room_id, owner=request.user)
+    return render(
+        request,
+        "core/album.html",
+        {"room": room, "now": timezone.now()},
+    )
+
+@login_required
+def room_ended(request, room_id):
+    room = get_object_or_404(Room, pk=room_id, owner=request.user)
+    return render(
+        request,
+        "core/room_ended.html",
+        {"room": room, "now": timezone.now()},
+    )
+

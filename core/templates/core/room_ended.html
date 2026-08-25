@@ -37,7 +37,7 @@
   </main>
   <nav class="footer-nav" aria-label="主要メニュー">
     <a href="{% url 'rooms' %}" aria-current="page">Room</a>
-    <a href="{% url 'tasks' %}">タスク</a>
+    <a href="{% url 'tasks' room_id=room.id %}">タスク</a>
     <a href="{% url 'album' %}">アルバム</a>
   </nav>
 </body>

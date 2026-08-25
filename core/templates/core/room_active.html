@@ -4,7 +4,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>旬間 (SHUNKAN) | 2026 夏</title>
+  <title>旬間 (SHUNKAN) | {{ room.name }}</title>
   <link rel="stylesheet" href="{% static 'core/css/v8-ui.css' %}">
 </head>
 <body>
@@ -15,7 +15,7 @@
       <div class="page-header__row">
         <div>
           <p class="eyebrow">旬間 (SHUNKAN) / 開催中のRoom</p>
-          <h1>2026 夏</h1>
+          <h1>{{ room.name }}</h1>
         </div>
         <span class="tag">夏の記録</span>
       </div>
@@ -38,7 +38,7 @@
     <section class="section" aria-labelledby="next-task-title">
       <div class="section-heading">
         <h2 id="next-task-title">次にやること</h2>
-        <a class="text-link" href="{% url 'tasks' %}">一覧へ</a>
+        <a class="text-link" href="{% url 'tasks' room.pk %}">一覧へ</a>
       </div>
       <article class="item-card">
         <span class="check-button" aria-hidden="true"></span>
@@ -50,8 +50,16 @@
     </section>
 
     <section class="section" aria-labelledby="latest-log-title">
-      <div class="section-heading"><h2 id="latest-log-title">最新のSHUNKAN-log</h2><a class="text-link" href="{% url 'album' %}">アルバムへ</a></div>
-      <article class="item-card"><div class="item-card__body"><h3 class="item-card__title">夕方の風が涼しかった</h3><p class="item-card__meta">8月20日 18:24 ・ 夏の思い出</p></div></article>
+      <div class="section-heading">
+        <h2 id="latest-log-title">最新のSHUNKAN-log</h2>
+        <a class="text-link" href="{% url 'room_album' room.pk %}">アルバムへ</a>
+      </div>
+      <article class="item-card">
+        <div class="item-card__body">
+          <h3 class="item-card__title">夕方の風が涼しかった</h3>
+          <p class="item-card__meta">8月20日 18:24 ・ 夏の思い出</p>
+        </div>
+      </article>
     </section>
 
     <section class="section" aria-labelledby="moment-action-title">
@@ -62,15 +70,15 @@
         </div>
       </div>
       <div class="button-stack">
-        <a class="button" href="{% url 'moments_new' %}">今を残す</a>
-        <a class="button--secondary" href="album.html">夏のアルバムを見る</a>
+        <a class="button" href="{% url 'room_moments_new' room.pk %}">今を残す</a>
+        <a class="button--secondary" href="{% url 'room_album' room.pk %}">夏のアルバムを見る</a>
       </div>
     </section>
   </main>
   <nav class="footer-nav" aria-label="主要メニュー">
-    <a href="{% url 'rooms' %}">Room</a>
-    <a href="{% url 'tasks' %}">タスク</a>
-    <a href="{% url 'album' %}">アルバム</a>
+    <a href="{% url 'room_detail' room.pk %}">Room</a>
+    <a href="{% url 'tasks' room.pk %}">タスク</a>
+    <a href="{% url 'room_album' room.pk %}">アルバム</a>
   </nav>
 </body>
 </html>

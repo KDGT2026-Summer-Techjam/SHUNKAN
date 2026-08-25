@@ -266,16 +266,27 @@ class UiShellRouteTests(TestCase):
             password="test-password-123",
         )
 
+        self.room = Room.objects.create(
+            owner=self.user,
+            name="2026 夏",
+            starts_at=timezone.make_aware(
+                datetime(2026, 8, 20, 12, 0, 0)
+            ),
+            ends_at=timezone.make_aware(
+                datetime(2026, 8, 30, 12, 0, 0)
+            ),
+        )
+
         self.client.force_login(self.user)
 
     def test_template_preview_pages_are_available(self):
         for path in (
-            "/rooms/",
-            "/rooms/active/",
-            "/rooms/ended/",
-            "/moments/new/",
-            "/tasks/",
-            "/album/",
+            reverse("rooms"),
+            reverse("room_detail", args=[self.room.pk]),
+            reverse("room_active", args=[self.room.pk]),
+            reverse("tasks", args=[self.room.pk]),
+            reverse("room_moments_new", args=[self.room.pk]),
+            reverse("room_album", args=[self.room.pk]),
         ):
             with self.subTest(path=path):
                 response = self.client.get(path)
@@ -284,7 +295,9 @@ class UiShellRouteTests(TestCase):
                 self.assertContains(response, "ログアウト")
 
     def test_album_page_uses_django_static_assets(self):
-        response = self.client.get("/album/")
+        response = self.client.get(
+            reverse("room_album", args=[self.room.pk])
+        )
 
         self.assertContains(
             response,
@@ -298,9 +311,9 @@ class UiShellRouteTests(TestCase):
 
     def test_post_forms_include_csrf_tokens(self):
         for path in (
-            "/rooms/",
-            "/tasks/",
-            "/moments/new/",
+            reverse("rooms"),
+            reverse("tasks", args=[self.room.pk]),
+            reverse("room_moments_new", args=[self.room.pk]),
         ):
             with self.subTest(path=path):
                 response = self.client.get(path)
