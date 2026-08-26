@@ -1,44 +1,19 @@
-{% load static %}
-<!doctype html>
-<html lang="ja">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>ログイン | 旬間 (SHUNKAN)</title>
-  <link rel="stylesheet" href="{% static 'core/css/v8-ui.css' %}">
-  <link rel="stylesheet" href="{% static 'core/css/shunkan-preview.css' %}">
-</head>
-<body>
-  <div class="app-shell">
-    <main class="screen screen--login">
-      {% include "core/includes/auth_header.html" %}
-      <section class="login-panel" aria-labelledby="login-title">
-        <div class="brand brand--large">
-          <div class="brand__jp">旬間<span>。</span></div>
-          <div class="brand__en">SHUNKAN</div>
-        </div>
-        <h1 class="sr-only" id="login-title">ログイン</h1>
-        <form class="form-stack" method="post">
-          {% csrf_token %}
-          {% if form.non_field_errors %}<div class="form-error form-error--block" role="alert">{{ form.non_field_errors }}</div>{% endif %}
-          <label class="field" for="{{ form.username.id_for_label }}">
-            <span class="field__label">ユーザー名</span>
-            {{ form.username }}
-            {% if form.username.errors %}<span class="form-error" role="alert">{{ form.username.errors|striptags }}</span>{% endif %}
-          </label>
-          <label class="field" for="{{ form.password.id_for_label }}">
-            <span class="field__label">パスワード</span>
-            {{ form.password }}
-            {% if form.password.errors %}<span class="form-error" role="alert">{{ form.password.errors|striptags }}</span>{% endif %}
-          </label>
-          <input type="hidden" name="next" value="{{ next }}">
-          <button class="primary-button" type="submit">ログイン</button>
-        </form>
-        <div class="login-divider"><span>または</span></div>
-        <p class="login-register">アカウントがない場合 <a href="{% url 'signup' %}">登録はこちら</a></p>
-        <p class="preview-note">開発用デモアカウント: <strong>demo / demo</strong></p>
-      </section>
-    </main>
-  </div>
-</body>
-</html>
+{% extends "core/base.html" %}
+{% block title %}ログイン | 旬間 (SHUNKAN){% endblock %}
+{% block screen_class %}screen--auth{% endblock %}
+{% block content %}
+<section class="auth-panel" aria-labelledby="login-title">
+  <div class="brand brand--large"><div class="brand__jp">旬間<span>。</span></div><div class="brand__en">SHUNKAN</div></div>
+  <h1 id="login-title">ログイン</h1>
+  <form class="form-stack" method="post">
+    {% csrf_token %}
+    {% if form.non_field_errors %}<div class="form-error form-error--block" role="alert">{{ form.non_field_errors }}</div>{% endif %}
+    <div class="field"><label class="field__label" for="{{ form.username.id_for_label }}">ユーザー名</label>{{ form.username }}{% if form.username.errors %}<span class="form-error" role="alert">{{ form.username.errors|striptags }}</span>{% endif %}</div>
+    <div class="field"><label class="field__label" for="{{ form.password.id_for_label }}">パスワード</label>{{ form.password }}{% if form.password.errors %}<span class="form-error" role="alert">{{ form.password.errors|striptags }}</span>{% endif %}</div>
+    <input type="hidden" name="next" value="{{ next }}">
+    <button class="primary-button" type="submit">ログイン</button>
+  </form>
+  <p class="auth-switch">アカウントがない場合 <a href="{% url 'signup' %}">新規登録</a></p>
+  <p class="preview-note">ローカル開発用: <strong>demo / demo</strong></p>
+</section>
+{% endblock %}

@@ -1,33 +1,22 @@
+{% extends "core/base.html" %}
 {% load static %}
-<!doctype html>
-<html lang="ja">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>{{ room.name }} | 旬間 (SHUNKAN)</title>
-  <link rel="stylesheet" href="{% static 'core/css/v8-ui.css' %}">
-  <link rel="stylesheet" href="{% static 'core/css/shunkan-preview.css' %}">
-</head>
-<body>
-<div class="app-shell">
-  <main class="screen screen--with-nav">
-    {% include "core/includes/auth_header.html" %}
-    <header class="room-header">
-      <p class="room-header__eyebrow">選択中Room</p>
-      <h1>{{ room.name }}</h1>
-      <p>{{ request.user.username }}さんの期間</p>
-    </header>
-    <section class="hero-progress" aria-label="Roomの進捗">
-      <div><span>終了日時</span><strong class="countdown">{{ room.ends_at|date:"n/j H:i" }}</strong></div>
-      <div class="progress-block"><div class="progress-block__text"><span>今の進捗</span><strong>0/0</strong></div><div class="progress-track"><span style="width:0%"></span></div></div>
-    </section>
-    <section class="home-actions" aria-label="Roomの操作">
-      <a href="{% url 'tasks' %}" class="home-action"><strong>タスク</strong><span>やりたいことを確認・編集</span></a>
-      <a href="{% url 'moments_new' %}" class="home-action"><strong>今を残す</strong><span>写真と瞬間ログを残す</span></a>
-      <a href="{% url 'album' %}" class="home-action"><strong>アルバム</strong><span>このRoomの記録を振り返る</span></a>
-    </section>
-  </main>
-  {% include "core/includes/bottom_nav.html" %}
+{% block title %}{{ room.name }} | 旬間 (SHUNKAN){% endblock %}
+{% block screen_class %}screen--with-nav{% endblock %}
+{% block content %}
+<header class="page-header"><p class="page-header__eyebrow">{{ room_status }}</p><h1>{{ room.name }}</h1><p>{{ request.user.username }}さんの今だけの期間</p></header>
+<section class="countdown-card" aria-labelledby="countdown-title">
+  <p class="countdown-card__label" id="countdown-title">{% if room_is_ended %}このRoomは終了しました{% else %}終了まで、あと{% endif %}</p>
+  <strong class="countdown-card__value" data-countdown="{{ room.ends_at|date:'c' }}">00日 00:00:00</strong>
+  <p class="countdown-card__date">{{ room.ends_at|date:"Y年n月j日 H:i" }}まで</p>
+</section>
+{% if room_is_active %}<a class="primary-button primary-button--accent hero-cta" href="{% url 'room_moments_new' room.pk %}">今を残す</a>{% else %}<p class="readonly-notice">現在は記録を追加できません。開催中に残した瞬間はアルバムでいつでも見返せます。</p>{% endif %}
+<section class="section" aria-labelledby="progress-title"><div class="section-heading"><h2 id="progress-title">今の進捗</h2><strong>{{ completed_count }}/{{ task_count }}</strong></div><div class="progress"><div class="progress__track"><span style="width:{{ progress_percent }}%"></span></div></div></section>
+<div class="dashboard-grid">
+  <section class="summary-card"><span class="summary-card__label">NEXT TASK</span>{% if next_task %}<h2>{{ next_task.title }}</h2><p>{% if next_task.due_date %}{{ next_task.due_date|date:"n月j日" }}まで{% else %}期限なし{% endif %}</p>{% else %}<h2>次のタスクはありません</h2><p>やりたいことを追加して、今を動かそう。</p>{% endif %}</section>
+  <section class="summary-card"><span class="summary-card__label">LATEST SHUNKAN-LOG</span>{% if latest_moment %}<h2>{{ latest_moment.body }}</h2><p>{{ latest_moment.occurred_at|date:"n月j日 H:i" }}</p>{% else %}<h2>まだ記録がありません</h2><p>できたことや気持ちを残してみよう。</p>{% endif %}</section>
 </div>
-</body>
-</html>
+<nav class="home-actions" aria-label="Roomの操作"><a href="{% url 'room_tasks' room.pk %}" class="home-action"><strong>タスク</strong><span>この期間にやりたいことを見る</span></a><a href="{% url 'room_album' room.pk %}" class="home-action"><strong>アルバム</strong><span>残した瞬間を写真と一緒に振り返る</span></a></nav>
+<section class="section management-section" aria-labelledby="room-settings-title"><div class="section-heading"><h2 id="room-settings-title">Roomの管理</h2></div><div class="card-actions"><a class="small-button" href="{% url 'room_update' room.pk %}">期間・名前を編集</a><form method="post" action="{% url 'room_delete' room.pk %}" onsubmit="return confirm('このRoomとすべての記録を削除しますか？');">{% csrf_token %}<button class="small-button small-button--danger" type="submit">Roomを削除</button></form></div></section>
+{% endblock %}
+{% block navigation %}{% include "core/includes/bottom_nav.html" %}{% endblock %}
+{% block scripts %}<script src="{% static 'core/js/countdown.js' %}" defer></script>{% endblock %}

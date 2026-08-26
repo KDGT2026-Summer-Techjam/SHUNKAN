@@ -1,49 +1,29 @@
-{% load static %}
-<!doctype html>
-<html lang="ja">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>ルーム | 旬間 (SHUNKAN)</title>
-  <link rel="stylesheet" href="{% static 'core/css/v8-ui.css' %}">
-  <link rel="stylesheet" href="{% static 'core/css/shunkan-preview.css' %}">
-</head>
-<body>
-<div class="app-shell">
-  <main class="screen screen--with-nav">
-    {% include "core/includes/auth_header.html" %}
-    <header class="brand brand--compact">
-      <div class="brand__jp">旬間<span>。</span></div><div class="brand__en">SHUNKAN</div>
-    </header>
-    <section class="section" aria-labelledby="rooms-title">
-      <div class="section-heading"><h1 id="rooms-title">ルーム一覧</h1></div>
-      <div class="room-list">
-        {% for room in rooms %}
-          <article class="room-card">
-            <a class="room-card__main" href="{% url 'room_detail' room.pk %}">
-              <div class="room-card__title-row"><span class="room-card__status-dot" aria-hidden="true"></span><h2>{{ room.name }}</h2></div>
-              <div class="room-card__countdown"><span class="room-card__label">{% if room.ends_at > now %}終了日時{% else %}終了済み{% endif %}</span><strong class="countdown">{{ room.ends_at|date:"n/j H:i" }}</strong></div>
-              <div class="progress-block"><div class="progress-block__text"><span>今の進捗</span><strong>0/0</strong></div><div class="progress-track"><span style="width:0%"></span></div></div>
-            </a>
-          </article>
-        {% empty %}
-          <div class="empty-state"><p class="empty-state__title">まだルームがありません</p><p>下のフォームから新しいルームを作ってみよう。</p></div>
-        {% endfor %}
-      </div>
-    </section>
-    <section class="section" aria-labelledby="room-create-title">
-      <h2 id="room-create-title">ルームを作る</h2>
-      <form class="form-stack" method="post">
-        {% csrf_token %}
-        {% if form.non_field_errors %}<div class="form-error form-error--block" role="alert">{{ form.non_field_errors }}</div>{% endif %}
-        <label class="field" for="{{ form.name.id_for_label }}"><span class="field__label">ルーム名</span>{{ form.name }}{% if form.name.errors %}<span class="form-error" role="alert">{{ form.name.errors|striptags }}</span>{% endif %}</label>
-        <label class="field" for="{{ form.starts_at.id_for_label }}"><span class="field__label">開始日時</span>{{ form.starts_at }}{% if form.starts_at.errors %}<span class="form-error" role="alert">{{ form.starts_at.errors|striptags }}</span>{% endif %}</label>
-        <label class="field" for="{{ form.ends_at.id_for_label }}"><span class="field__label">終了日時</span>{{ form.ends_at }}{% if form.ends_at.errors %}<span class="form-error" role="alert">{{ form.ends_at.errors|striptags }}</span>{% endif %}</label>
-        <button class="primary-button" type="submit">作成する</button>
-      </form>
-    </section>
-  </main>
-  {% include "core/includes/bottom_nav.html" %}
-</div>
-</body>
-</html>
+{% extends "core/base.html" %}
+{% block title %}Room | 旬間 (SHUNKAN){% endblock %}
+{% block screen_class %}screen--with-nav{% endblock %}
+{% block content %}
+<header class="brand brand--compact"><div class="brand__jp">旬間<span>。</span></div><div class="brand__en">SHUNKAN</div></header>
+<section aria-labelledby="rooms-title">
+  <div class="section-heading"><h1 id="rooms-title">Room</h1><span class="status-badge">自分だけの期間</span></div>
+  <div class="room-list">
+    {% for room in rooms %}
+    <article class="room-card"><a class="room-card__main" href="{% url 'room_detail' room.pk %}">
+      <div class="room-card__heading"><h2>{{ room.name }}</h2><span class="status-badge {% if room.ui_status == '開催中' %}status-badge--active{% elif room.ui_status == '終了済み' %}status-badge--ended{% endif %}">{{ room.ui_status }}</span></div>
+      <p class="room-card__time">{{ room.starts_at|date:"Y/n/j H:i" }} — {{ room.ends_at|date:"Y/n/j H:i" }}</p>
+      <div class="progress"><div class="progress__text"><span>今の進捗</span><strong>{{ room.completed_count }}/{{ room.task_count }}</strong></div><div class="progress__track"><span style="width:{{ room.progress_percent }}%"></span></div></div>
+    </a></article>
+    {% empty %}<div class="empty-state"><strong>まだRoomがありません</strong><span>今だけの期間を作ってみよう。</span></div>{% endfor %}
+  </div>
+</section>
+<section class="section" aria-labelledby="room-create-title">
+  <div class="section-heading"><h2 id="room-create-title">Roomを作る</h2></div>
+  <form class="form-stack form-card" method="post">
+    {% csrf_token %}{% if form.non_field_errors %}<div class="form-error form-error--block" role="alert">{{ form.non_field_errors }}</div>{% endif %}
+    <div class="field"><label class="field__label" for="{{ form.name.id_for_label }}">Room名</label>{{ form.name }}{% if form.name.errors %}<span class="form-error">{{ form.name.errors|striptags }}</span>{% endif %}</div>
+    <div class="field"><label class="field__label" for="{{ form.starts_at.id_for_label }}">開始日時</label>{{ form.starts_at }}{% if form.starts_at.errors %}<span class="form-error">{{ form.starts_at.errors|striptags }}</span>{% endif %}</div>
+    <div class="field"><label class="field__label" for="{{ form.ends_at.id_for_label }}">終了日時</label>{{ form.ends_at }}{% if form.ends_at.errors %}<span class="form-error">{{ form.ends_at.errors|striptags }}</span>{% endif %}</div>
+    <button class="primary-button" type="submit">この期間をはじめる</button>
+  </form>
+</section>
+{% endblock %}
+{% block navigation %}{% include "core/includes/bottom_nav.html" %}{% endblock %}
