@@ -1,5 +1,7 @@
 from datetime import datetime, timedelta
-
+from io import BytesIO
+from tempfile import TemporaryDirectory
+from unittest.mock import Mock, patch
 
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
@@ -7,10 +9,216 @@ from django.core.management import call_command
 from django.test import TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
+from PIL import Image
 
 from django.core.files.uploadedfile import SimpleUploadedFile
 
+from .image_processing import (
+    MAX_IMAGE_DIMENSION,
+    MAX_SOURCE_PIXELS,
+    MAX_UPLOAD_SIZE,
+    process_uploaded_image,
+)
 from .models import Room, Category, Task, MomentLog, Photo
+
+
+class ImageProcessingTests(TestCase):
+    def make_image(self, image_format, size=(2400, 1200)):
+        output = BytesIO()
+        mode = "RGBA" if image_format == "PNG" else "RGB"
+        Image.new(mode, size, "coral").save(output, format=image_format)
+        return SimpleUploadedFile(
+            f"photo.{image_format.lower()}",
+            output.getvalue(),
+            content_type=f"image/{image_format.lower()}",
+        )
+
+    def test_large_image_is_resized_and_optimized(self):
+        processed = process_uploaded_image(self.make_image("JPEG"))
+
+        with Image.open(processed) as image:
+            self.assertEqual(image.format, "JPEG")
+            self.assertLessEqual(max(image.size), MAX_IMAGE_DIMENSION)
+
+    def test_animated_gif_keeps_its_frames(self):
+        output = BytesIO()
+        frames = [
+            Image.new("RGB", (2400, 1200), "coral"),
+            Image.new("RGB", (2400, 1200), "navy"),
+        ]
+        frames[0].save(
+            output,
+            format="GIF",
+            save_all=True,
+            append_images=frames[1:],
+            duration=[100, 120],
+            loop=0,
+        )
+        upload = SimpleUploadedFile("animated.gif", output.getvalue(), content_type="image/gif")
+
+        processed = process_uploaded_image(upload)
+
+        with Image.open(processed) as image:
+            self.assertTrue(getattr(image, "is_animated", False))
+            self.assertEqual(getattr(image, "n_frames", 1), 2)
+            self.assertLessEqual(max(image.size), MAX_IMAGE_DIMENSION)
+
+    def test_image_larger_than_ten_megabytes_is_rejected(self):
+        upload = SimpleUploadedFile(
+            "large.jpg",
+            b"x" * (MAX_UPLOAD_SIZE + 1),
+            content_type="image/jpeg",
+        )
+
+        with self.assertRaisesMessage(ValidationError, "写真は1枚10MB以下にしてください。"):
+            process_uploaded_image(upload)
+
+    def test_non_image_file_is_rejected(self):
+        upload = SimpleUploadedFile("fake.jpg", b"not-an-image", content_type="image/jpeg")
+
+        with self.assertRaisesMessage(ValidationError, "画像ファイルを読み取れませんでした。"):
+            process_uploaded_image(upload)
+
+    @patch("core.image_processing.Image.open")
+    def test_image_with_too_many_pixels_is_rejected(self, image_open):
+        image_open.return_value = Mock(
+            format="JPEG",
+            width=MAX_SOURCE_PIXELS + 1,
+            height=1,
+        )
+        upload = SimpleUploadedFile("huge.jpg", b"jpeg-header", content_type="image/jpeg")
+
+        with self.assertRaisesMessage(ValidationError, "画像の縦横サイズが大きすぎます。"):
+            process_uploaded_image(upload)
+
+
+class MomentImageUploadTests(TestCase):
+    def setUp(self):
+        self.media_root = TemporaryDirectory()
+        self.override = override_settings(MEDIA_ROOT=self.media_root.name)
+        self.override.enable()
+        self.user = get_user_model().objects.create_user(
+            username="image-uploader",
+            password="test-password-123",
+        )
+        now = timezone.now()
+        self.room = Room.objects.create(
+            owner=self.user,
+            name="写真テストRoom",
+            starts_at=now - timedelta(days=1),
+            ends_at=now + timedelta(days=1),
+        )
+        self.occurred_at = timezone.localtime(now).strftime("%Y-%m-%dT%H:%M")
+        self.client.force_login(self.user)
+
+    def tearDown(self):
+        self.override.disable()
+        self.media_root.cleanup()
+
+    def make_jpeg(self):
+        output = BytesIO()
+        Image.new("RGB", (2400, 1200), "coral").save(output, format="JPEG")
+        return SimpleUploadedFile("moment.jpg", output.getvalue(), content_type="image/jpeg")
+
+    def test_valid_image_post_creates_resized_photo(self):
+        response = self.client.post(
+            reverse("room_moments_new", args=[self.room.pk]),
+            {
+                "body": "写真を残した瞬間",
+                "occurred_at": self.occurred_at,
+                "images": self.make_jpeg(),
+                "captions": "夕暮れ",
+            },
+        )
+
+        self.assertRedirects(response, reverse("room_album", args=[self.room.pk]))
+        moment = MomentLog.objects.get(room=self.room)
+        photo = Photo.objects.get(moment_log=moment)
+        self.assertEqual(photo.caption, "夕暮れ")
+        with Image.open(photo.image) as image:
+            self.assertLessEqual(max(image.size), MAX_IMAGE_DIMENSION)
+
+    def test_invalid_image_post_does_not_create_moment_or_photo(self):
+        invalid = SimpleUploadedFile("broken.gif", b"not-a-gif", content_type="image/gif")
+
+        response = self.client.post(
+            reverse("room_moments_new", args=[self.room.pk]),
+            {
+                "body": "保存されない瞬間",
+                "occurred_at": self.occurred_at,
+                "images": invalid,
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "画像ファイルを読み取れませんでした。")
+        self.assertFalse(MomentLog.objects.filter(room=self.room).exists())
+        self.assertFalse(Photo.objects.exists())
+
+
+class PageRenderingTests(TestCase):
+    def setUp(self):
+        self.user = get_user_model().objects.create_user(
+            username="page-reviewer",
+            password="test-password-123",
+        )
+        now = timezone.now()
+        self.room = Room.objects.create(
+            owner=self.user,
+            name="全ページ確認Room",
+            starts_at=now - timedelta(days=1),
+            ends_at=now + timedelta(days=1),
+        )
+        self.task = Task.objects.create(room=self.room, title="表示確認タスク")
+        self.moment = MomentLog.objects.create(
+            room=self.room,
+            task=self.task,
+            body="表示確認SHUNKAN-log",
+            occurred_at=now,
+        )
+        self.photo = Photo.objects.create(
+            moment_log=self.moment,
+            image="moment_photos/page-test.jpg",
+            caption="表示確認写真",
+        )
+        self.client.force_login(self.user)
+
+    def test_all_authenticated_pages_render_with_the_shared_layout(self):
+        urls = [
+            reverse("profile"),
+            reverse("rooms"),
+            reverse("room_detail", args=[self.room.pk]),
+            reverse("room_update", args=[self.room.pk]),
+            reverse("room_tasks", args=[self.room.pk]),
+            reverse("task_update", args=[self.room.pk, self.task.pk]),
+            reverse("moment_list", args=[self.room.pk]),
+            reverse("room_moments_new", args=[self.room.pk]),
+            reverse("moment_update", args=[self.room.pk, self.moment.pk]),
+            reverse("photo_list", args=[self.room.pk]),
+            reverse("photo_update", args=[self.room.pk, self.photo.pk]),
+            reverse("room_album", args=[self.room.pk]),
+        ]
+
+        for url in urls:
+            with self.subTest(url=url):
+                response = self.client.get(url)
+                self.assertEqual(response.status_code, 200)
+                self.assertContains(response, "旬間 (SHUNKAN)")
+                self.assertContains(response, 'id="main-content"')
+
+    def test_bottom_navigation_uses_the_expected_order_and_labels(self):
+        response = self.client.get(reverse("room_detail", args=[self.room.pk]))
+        content = response.content.decode()
+
+        positions = [
+            content.index(">Room</span>"),
+            content.index(">タスク</span>"),
+            content.index(">撮影</span>"),
+            content.index(">アルバム</span>"),
+            content.index(">アカウント</span>"),
+        ]
+        self.assertEqual(positions, sorted(positions))
+        self.assertContains(response, "bottom-nav__icon", count=4)
 
 
 class AuthenticationViewTests(TestCase):

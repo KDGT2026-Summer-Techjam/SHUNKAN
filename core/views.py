@@ -1,7 +1,7 @@
 from django.contrib.auth import login
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import UserCreationForm
-from django.core.exceptions import PermissionDenied
+from django.core.exceptions import PermissionDenied, ValidationError
 from django.db import transaction
 from django.shortcuts import redirect, render
 from django.utils import timezone
@@ -23,6 +23,7 @@ from .forms import (
     TaskForm,
     TaskUpdateForm,
 )
+from .image_processing import process_uploaded_image
 from .models import MomentLog, Photo, Room
 
 
@@ -164,14 +165,21 @@ def room_moments_new(request, room_id):
         form = MomentLogForm(request.POST, room=room)
         images = request.FILES.getlist("images")
         captions = request.POST.getlist("captions")
+        processed_images = []
         if len(images) > 3:
             form.add_error(None, "写真は3枚までです。")
+        else:
+            for index, image in enumerate(images, start=1):
+                try:
+                    processed_images.append(process_uploaded_image(image))
+                except ValidationError as error:
+                    form.add_error(None, f"写真{index}: {error.messages[0]}")
         if form.is_valid():
             with transaction.atomic():
                 moment = form.save(commit=False)
                 moment.room = room
                 moment.save()
-                for index, image in enumerate(images):
+                for index, image in enumerate(processed_images):
                     Photo.objects.create(
                         moment_log=moment,
                         image=image,
@@ -245,11 +253,11 @@ def room_update(request, room_id):
     if request.method == "POST" and form.is_valid():
         form.save()
         return redirect("room_detail", room_id=room.pk)
-    return render(
-        request,
-        "core/owned_form.html",
-        {"form": form, "heading": "Roomを更新"},
+    context = room_display_context(room, active_nav="room")
+    context.update(
+        {"form": form, "heading": "Roomを更新", "form_kind": "room"}
     )
+    return render(request, "core/owned_form.html", context)
 
 
 @login_required
@@ -268,11 +276,12 @@ def task_update(request, room_id, task_id):
     if request.method == "POST" and form.is_valid():
         form.save()
         return redirect("task_list", room_id=room_id)
-    return render(
-        request,
-        "core/owned_form.html",
-        {"form": form, "heading": "タスクを更新"},
+    room = get_owned_room(request.user, room_id)
+    context = room_display_context(room, active_nav="tasks")
+    context.update(
+        {"form": form, "heading": "タスクを更新", "form_kind": "task"}
     )
+    return render(request, "core/owned_form.html", context)
 
 
 @login_required
@@ -285,12 +294,13 @@ def task_delete(request, room_id, task_id):
 
 @login_required
 def moment_list(request, room_id):
-    moment_qs = owned_moment_logs(request.user, room_id)
-    return render(
-        request,
-        "core/owned_list.html",
-        {"heading": "SHUNKAN-log", "items": [moment.body for moment in moment_qs]},
+    room = get_owned_room(request.user, room_id)
+    moment_qs = owned_moment_logs(request.user, room_id).prefetch_related("photos")
+    context = room_display_context(room, active_nav="album")
+    context.update(
+        {"heading": "SHUNKAN-log", "items": moment_qs, "item_kind": "moment"}
     )
+    return render(request, "core/owned_list.html", context)
 
 
 @login_required
@@ -301,11 +311,12 @@ def moment_update(request, room_id, moment_id):
     if request.method == "POST" and form.is_valid():
         form.save()
         return redirect("moment_list", room_id=room_id)
-    return render(
-        request,
-        "core/owned_form.html",
-        {"form": form, "heading": "記録を更新"},
+    room = get_owned_room(request.user, room_id)
+    context = room_display_context(room, active_nav="album")
+    context.update(
+        {"form": form, "heading": "SHUNKAN-logを更新", "form_kind": "moment"}
     )
+    return render(request, "core/owned_form.html", context)
 
 
 @login_required
@@ -318,15 +329,11 @@ def moment_delete(request, room_id, moment_id):
 
 @login_required
 def photo_list(request, room_id):
-    photo_qs = owned_photos(request.user, room_id)
-    return render(
-        request,
-        "core/owned_list.html",
-        {
-            "heading": "写真",
-            "items": [photo.caption or photo.image.name for photo in photo_qs],
-        },
-    )
+    room = get_owned_room(request.user, room_id)
+    photo_qs = owned_photos(request.user, room_id).select_related("moment_log")
+    context = room_display_context(room, active_nav="album")
+    context.update({"heading": "写真", "items": photo_qs, "item_kind": "photo"})
+    return render(request, "core/owned_list.html", context)
 
 
 @login_required
@@ -337,11 +344,12 @@ def photo_update(request, room_id, photo_id):
     if request.method == "POST" and form.is_valid():
         form.save()
         return redirect("photo_list", room_id=room_id)
-    return render(
-        request,
-        "core/owned_form.html",
-        {"form": form, "heading": "写真を更新"},
+    room = get_owned_room(request.user, room_id)
+    context = room_display_context(room, active_nav="album")
+    context.update(
+        {"form": form, "heading": "写真のひとことを更新", "form_kind": "photo"}
     )
+    return render(request, "core/owned_form.html", context)
 
 
 @login_required

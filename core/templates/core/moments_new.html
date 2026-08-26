@@ -1,27 +1,30 @@
-{% load static %}
-<!doctype html>
-<html lang="ja">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>今を残す | 旬間 (SHUNKAN)</title>
-  <link rel="stylesheet" href="{% static 'core/css/shunkan-preview.css' %}">
-</head>
-<body>
-<div class="app-shell">
-  <main class="screen screen--with-nav">
-    <header class="moment-header"><div><p class="moment-header__brand">旬間 (SHUNKAN)</p><p class="moment-header__room">{{ room.name }}</p></div><div><h1>今を残す</h1><p>この瞬間を残そう</p></div></header>
-    <form class="form-stack moment-form" method="post" enctype="multipart/form-data">
-      {% csrf_token %}{% if form.non_field_errors %}<div class="form-error form-error--block" role="alert">{{ form.non_field_errors }}</div>{% endif %}
-      <label class="field">瞬間ログ本文{{ form.body }}{% if form.body.errors %}<span class="form-error">{{ form.body.errors|striptags }}</span>{% endif %}</label>
-      <label class="field">発生日時{{ form.occurred_at }}{% if form.occurred_at.errors %}<span class="form-error">{{ form.occurred_at.errors|striptags }}</span>{% endif %}</label>
-      <label class="field">関連タスク{{ form.task }}{% if form.task.errors %}<span class="form-error">{{ form.task.errors|striptags }}</span>{% endif %}</label>
-      <label class="field">カテゴリ{{ form.category }}{% if form.category.errors %}<span class="form-error">{{ form.category.errors|striptags }}</span>{% endif %}</label>
-      <section class="photo-section"><div class="photo-section__heading"><div><h2>写真</h2><p>JPEG / PNG / WebP、最大3枚。写真ごとにひとことを付けられます。</p></div></div>{% for i in '123' %}<label class="field">写真{{ i }}<input class="field__input" type="file" name="images" accept="image/jpeg,image/png,image/webp"><input class="field__input" name="captions" maxlength="140" placeholder="写真へのひとこと（任意）"></label>{% endfor %}</section>
-      <button class="primary-button" type="submit">保存する</button>
-    </form>
-  </main>
-  {% include "core/includes/bottom_nav.html" %}
-</div>
-</body>
-</html>
+{% extends "core/base.html" %}
+{% block title %}今を残す | 旬間 (SHUNKAN){% endblock %}
+{% block screen_class %}screen--with-nav{% endblock %}
+{% block content %}
+<header class="page-header page-header--center">
+  <p class="page-header__eyebrow">{{ room.name }}</p>
+  <h1>今を残す</h1>
+  <p>この瞬間をSHUNKAN-logに残そう</p>
+</header>
+<form class="form-stack form-card" method="post" enctype="multipart/form-data">
+  {% csrf_token %}
+  {% if form.non_field_errors %}<div class="form-error form-error--block" role="alert">{{ form.non_field_errors }}</div>{% endif %}
+  <div class="field"><label class="field__label" for="{{ form.body.id_for_label }}">SHUNKAN-log本文</label>{{ form.body }}{% if form.body.errors %}<span class="form-error">{{ form.body.errors|striptags }}</span>{% endif %}</div>
+  <div class="field"><label class="field__label" for="{{ form.occurred_at.id_for_label }}">発生日時</label>{{ form.occurred_at }}{% if form.occurred_at.errors %}<span class="form-error">{{ form.occurred_at.errors|striptags }}</span>{% endif %}</div>
+  <div class="field"><label class="field__label" for="{{ form.task.id_for_label }}">関連タスク</label>{{ form.task }}{% if form.task.errors %}<span class="form-error">{{ form.task.errors|striptags }}</span>{% endif %}</div>
+  <div class="field"><label class="field__label" for="{{ form.category.id_for_label }}">カテゴリ</label>{{ form.category }}{% if form.category.errors %}<span class="form-error">{{ form.category.errors|striptags }}</span>{% endif %}</div>
+  <section class="photo-section" aria-labelledby="photo-title">
+    <div class="photo-section__heading"><h2 id="photo-title">写真</h2><p>JPEG / PNG / WebP / GIF、1枚10MB・最大3枚。保存時に軽量化し、アルバムでは中央を基準に正方形で統一表示します。</p></div>
+    {% for i in '123' %}
+    <div class="photo-upload-card">
+      <label class="field"><span class="field__label">写真{{ i }}</span><input class="field__input" type="file" name="images" accept="image/jpeg,image/png,image/webp,image/gif"></label>
+      <label class="field"><span class="field__label">ひとこと（任意）</span><input class="field__input" name="captions" maxlength="140" placeholder="この写真の思い出"></label>
+    </div>
+    {% endfor %}
+  </section>
+  <button class="primary-button primary-button--coral" type="submit">この瞬間を保存する</button>
+  <a class="secondary-button" href="{% url 'room_detail' room.pk %}">キャンセル</a>
+</form>
+{% endblock %}
+{% block navigation %}{% include "core/includes/bottom_nav.html" %}{% endblock %}

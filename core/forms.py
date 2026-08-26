@@ -10,6 +10,11 @@ class RoomForm(forms.ModelForm):
     class Meta:
         model = Room
         fields: ClassVar[list[str]] = ["name", "starts_at", "ends_at"]
+        labels: ClassVar[dict[str, str]] = {
+            "name": "Room名",
+            "starts_at": "開始日時",
+            "ends_at": "終了日時",
+        }
         widgets: ClassVar[dict[str, object]] = {
             "name": forms.TextInput(
                 attrs={"class": "field__input", "placeholder": "例：文化祭まで"},
@@ -29,18 +34,24 @@ class TaskUpdateForm(forms.ModelForm):
     class Meta:
         model = Task
         fields = ("title", "due_date")
+        labels = {"title": "タイトル", "due_date": "期限"}
+        widgets = {
+            "due_date": forms.DateInput(attrs={"type": "date"}),
+        }
 
 
 class MomentLogUpdateForm(forms.ModelForm):
     class Meta:
         model = MomentLog
         fields = ("body",)
+        labels = {"body": "SHUNKAN-log本文"}
 
 
 class PhotoUpdateForm(forms.ModelForm):
     class Meta:
         model = Photo
         fields = ("caption",)
+        labels = {"caption": "写真へのひとこと"}
 
 
 class TaskForm(forms.ModelForm):
