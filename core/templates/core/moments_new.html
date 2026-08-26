@@ -6,6 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>旬間 (SHUNKAN) | 今を残す</title>
   <link rel="stylesheet" href="{% static 'core/css/v8-ui.css' %}">
+  <link rel="stylesheet" href="{% static 'core/css/shunkan-preview.css' %}">
 </head>
 <body>
   <main class="app">
@@ -47,10 +48,6 @@
       <p class="field-note">静的版では保存しません。通常のSHUNKAN-logは開催中のRoomだけに残せます。終了後の振り返りはAdditional機能です。</p>
     </form>
   </main>
-  <nav class="footer-nav" aria-label="主要メニュー">
-    <a href="{% url 'rooms' %}">Room</a>
-    <a href="{% url 'tasks' %}">タスク</a>
-    <a href="{% url 'album' %}">アルバム</a>
-  </nav>
+  {% include "core/includes/bottom_nav.html" %}
 </body>
 </html>

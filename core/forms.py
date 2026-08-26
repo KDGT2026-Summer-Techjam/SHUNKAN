@@ -46,14 +46,14 @@ class RoomForm(forms.ModelForm):
         fields = ["name", "starts_at", "ends_at"]
         widgets = {
             "name": forms.TextInput(
-                attrs={"placeholder": "例：文化祭まで"},
+                attrs={"class": "field__input", "placeholder": "例：文化祭まで"},
             ),
             "starts_at": forms.DateTimeInput(
                 format="%Y-%m-%dT%H:%M",
-                attrs={"type": "datetime-local"},
+                attrs={"class": "field__input", "type": "datetime-local"},
             ),
             "ends_at": forms.DateTimeInput(
                 format="%Y-%m-%dT%H:%M",
-                attrs={"type": "datetime-local"},
+                attrs={"class": "field__input", "type": "datetime-local"},
             ),
         }

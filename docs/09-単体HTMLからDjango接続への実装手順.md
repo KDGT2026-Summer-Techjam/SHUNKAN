@@ -26,7 +26,7 @@
 
 - `core/urls.py` は `/accounts/login/`、`/accounts/logout/` と、`/rooms/`、`/rooms/active/`、`/rooms/ended/`、`/tasks/`、`/moments/new/`、`/album/` を公開する。Room関連画面はログイン必須とする。
 - `core/views.py` は、ログイン中の利用者が所有するRoomの一覧・作成・詳細を扱う。Task、SHUNKAN-log、PhotoのDB取得・保存はまだ行わない。
-- CSSは `static/core/css/v8-ui.css`、アルバムのサンプル画像は `static/core/images/` を `{% static %}` で参照する。
+- CSSは `static/core/css/v8-ui.css` と、プレビューUIを取り込んだ `static/core/css/shunkan-preview.css` を使う。下部ナビ画像などは `static/core/images/` を `{% static %}` で参照する。
 - 仮の開催中・終了済みURLは画面確認用であり、将来は要件定義どおり `/rooms/<room_id>/` を使う。
 
 ## テンプレートを更新する手順

@@ -6,6 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>旬間 (SHUNKAN) | タスク</title>
   <link rel="stylesheet" href="{% static 'core/css/v8-ui.css' %}">
+  <link rel="stylesheet" href="{% static 'core/css/shunkan-preview.css' %}">
 </head>
 <body>
   <main class="app">
@@ -63,10 +64,6 @@
       </article>
     </section>
   </main>
-  <nav class="footer-nav" aria-label="主要メニュー">
-    <a href="{% url 'rooms' %}">Room</a>
-    <a href="{% url 'tasks' %}" aria-current="page">タスク</a>
-    <a href="{% url 'album' %}">アルバム</a>
-  </nav>
+  {% include "core/includes/bottom_nav.html" %}
 </body>
 </html>

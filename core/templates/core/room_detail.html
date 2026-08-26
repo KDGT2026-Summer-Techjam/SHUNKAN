@@ -3,34 +3,31 @@
 <html lang="ja">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>旬間 (SHUNKAN) | {{ room.name }}</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>{{ room.name }} | 旬間 (SHUNKAN)</title>
   <link rel="stylesheet" href="{% static 'core/css/v8-ui.css' %}">
+  <link rel="stylesheet" href="{% static 'core/css/shunkan-preview.css' %}">
 </head>
 <body>
-  <main class="app">
+<div class="app-shell">
+  <main class="screen screen--with-nav">
     {% include "core/includes/auth_header.html" %}
-    <header class="page-header">
-      <a class="back-link" href="{% url 'rooms' %}">← Room一覧</a>
-      <p class="eyebrow">{{ request.user.username }}さんのRoom</p>
+    <header class="room-header">
+      <p class="room-header__eyebrow">選択中Room</p>
       <h1>{{ room.name }}</h1>
-      <p class="lead">このRoomの記録は、{{ request.user.username }}さんだけが利用できます。</p>
+      <p>{{ request.user.username }}さんの期間</p>
     </header>
-
-    <section class="form-card" aria-labelledby="room-period-title">
-      <h2 id="room-period-title">期間</h2>
-      <div class="field">
-        <span class="field-note">開始日時</span>
-        <strong>{{ room.starts_at|date:"Y年n月j日 H:i" }}</strong>
-      </div>
-      <div class="field">
-        <span class="field-note">終了日時</span>
-        <strong>{{ room.ends_at|date:"Y年n月j日 H:i" }}</strong>
-      </div>
-      <p class="field-note">
-        {% if room.ends_at > now %}開催中のRoomです。Task・SHUNKAN-logの実データ表示は次の実装で接続します。{% else %}終了済みのRoomです。閲覧専用の制御はRoom状態実装で接続します。{% endif %}
-      </p>
+    <section class="hero-progress" aria-label="Roomの進捗">
+      <div><span>終了日時</span><strong class="countdown">{{ room.ends_at|date:"n/j H:i" }}</strong></div>
+      <div class="progress-block"><div class="progress-block__text"><span>今の進捗</span><strong>0/0</strong></div><div class="progress-track"><span style="width:0%"></span></div></div>
+    </section>
+    <section class="home-actions" aria-label="Roomの操作">
+      <a href="{% url 'tasks' %}" class="home-action"><strong>タスク</strong><span>やりたいことを確認・編集</span></a>
+      <a href="{% url 'moments_new' %}" class="home-action"><strong>今を残す</strong><span>写真と瞬間ログを残す</span></a>
+      <a href="{% url 'album' %}" class="home-action"><strong>アルバム</strong><span>このRoomの記録を振り返る</span></a>
     </section>
   </main>
+  {% include "core/includes/bottom_nav.html" %}
+</div>
 </body>
 </html>
