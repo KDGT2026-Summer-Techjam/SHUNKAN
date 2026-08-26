@@ -1,8 +1,10 @@
 from datetime import datetime, timedelta
 from io import BytesIO
 from tempfile import TemporaryDirectory
+from typing import cast
 from unittest.mock import Mock, patch
 
+from django import forms
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
 from django.core.management import call_command
@@ -19,6 +21,7 @@ from .image_processing import (
     MAX_UPLOAD_SIZE,
     process_uploaded_image,
 )
+from .forms import MomentLogForm
 from .models import Room, Category, Task, MomentLog, Photo
 
 
@@ -135,6 +138,7 @@ class MomentImageUploadTests(TestCase):
         moment = MomentLog.objects.get(room=self.room)
         photo = Photo.objects.get(moment_log=moment)
         self.assertEqual(photo.caption, "夕暮れ")
+        self.assertLess(abs((moment.occurred_at - timezone.now()).total_seconds()), 60)
         with Image.open(photo.image) as image:
             self.assertLessEqual(max(image.size), MAX_IMAGE_DIMENSION)
 
@@ -176,6 +180,7 @@ class PageRenderingTests(TestCase):
             body="表示確認SHUNKAN-log",
             occurred_at=now,
         )
+        self.category = Category.objects.create(room=self.room, name="表示確認カテゴリ")
         self.photo = Photo.objects.create(
             moment_log=self.moment,
             image="moment_photos/page-test.jpg",
@@ -191,6 +196,8 @@ class PageRenderingTests(TestCase):
             reverse("room_update", args=[self.room.pk]),
             reverse("room_tasks", args=[self.room.pk]),
             reverse("task_update", args=[self.room.pk, self.task.pk]),
+            reverse("room_categories", args=[self.room.pk]),
+            reverse("category_update", args=[self.room.pk, self.category.pk]),
             reverse("moment_list", args=[self.room.pk]),
             reverse("room_moments_new", args=[self.room.pk]),
             reverse("moment_update", args=[self.room.pk, self.moment.pk]),
@@ -219,6 +226,136 @@ class PageRenderingTests(TestCase):
         ]
         self.assertEqual(positions, sorted(positions))
         self.assertContains(response, "bottom-nav__icon", count=4)
+
+
+class CategoryViewTests(TestCase):
+    def setUp(self):
+        self.owner = get_user_model().objects.create_user(
+            username="category-owner",
+            password="test-password-123",
+        )
+        self.other = get_user_model().objects.create_user(
+            username="category-other",
+            password="test-password-123",
+        )
+        now = timezone.now()
+        self.owned_room = Room.objects.create(
+            owner=self.owner,
+            name="自分のRoom",
+            starts_at=now - timedelta(days=1),
+            ends_at=now + timedelta(days=7),
+        )
+        self.other_room = Room.objects.create(
+            owner=self.other,
+            name="他人のRoom",
+            starts_at=now - timedelta(days=1),
+            ends_at=now + timedelta(days=7),
+        )
+        self.category = Category.objects.create(room=self.owned_room, name="花火")
+        self.other_category = Category.objects.create(room=self.other_room, name="準備")
+        self.client.force_login(self.owner)
+
+    def test_list_shows_only_own_categories(self):
+        response = self.client.get(reverse("room_categories", args=[self.owned_room.pk]))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "花火")
+        self.assertNotContains(response, "準備")
+
+    def test_other_users_category_list_returns_404(self):
+        response = self.client.get(reverse("room_categories", args=[self.other_room.pk]))
+
+        self.assertEqual(response.status_code, 404)
+
+    def test_owner_can_create_category(self):
+        response = self.client.post(
+            reverse("room_categories", args=[self.owned_room.pk]),
+            {"name": "グルメ", "color": "#FB8500"},
+        )
+
+        self.assertRedirects(response, reverse("room_categories", args=[self.owned_room.pk]))
+        category = Category.objects.get(room=self.owned_room, name="グルメ")
+        self.assertEqual(category.color, "#FB8500")
+        self.assertEqual(category.sort_order, 1)
+
+    def test_owner_can_update_category(self):
+        response = self.client.post(
+            reverse("category_update", args=[self.owned_room.pk, self.category.pk]),
+            {"name": "夏祭り", "color": ""},
+        )
+
+        self.assertRedirects(response, reverse("room_categories", args=[self.owned_room.pk]))
+        self.category.refresh_from_db()
+        self.assertEqual(self.category.name, "夏祭り")
+
+    def test_cannot_update_another_users_category(self):
+        response = self.client.post(
+            reverse("category_update", args=[self.owned_room.pk, self.other_category.pk]),
+            {"name": "書き換え", "color": ""},
+        )
+
+        self.assertEqual(response.status_code, 404)
+        self.other_category.refresh_from_db()
+        self.assertEqual(self.other_category.name, "準備")
+
+    def test_owner_can_delete_category(self):
+        response = self.client.post(
+            reverse("category_delete", args=[self.owned_room.pk, self.category.pk])
+        )
+
+        self.assertRedirects(response, reverse("room_categories", args=[self.owned_room.pk]))
+        self.assertFalse(Category.objects.filter(pk=self.category.pk).exists())
+
+    def test_cannot_delete_another_users_category(self):
+        response = self.client.post(
+            reverse("category_delete", args=[self.owned_room.pk, self.other_category.pk])
+        )
+
+        self.assertEqual(response.status_code, 404)
+        self.assertTrue(Category.objects.filter(pk=self.other_category.pk).exists())
+
+    def test_category_posts_are_rejected_outside_active_room(self):
+        ended_room = Room.objects.create(
+            owner=self.owner,
+            name="終了したRoom",
+            starts_at=timezone.now() - timedelta(days=7),
+            ends_at=timezone.now() - timedelta(days=1),
+        )
+
+        response = self.client.post(
+            reverse("room_categories", args=[ended_room.pk]),
+            {"name": "追加", "color": ""},
+        )
+
+        self.assertEqual(response.status_code, 403)
+        self.assertFalse(Category.objects.filter(room=ended_room).exists())
+
+
+class MomentLogFormTests(TestCase):
+    def test_task_choices_show_title_and_due_date(self):
+        user = get_user_model().objects.create_user(
+            username="form-user",
+            password="test-password-123",
+        )
+        now = timezone.now()
+        room = Room.objects.create(
+            owner=user,
+            name="フォーム確認Room",
+            starts_at=now - timedelta(days=1),
+            ends_at=now + timedelta(days=7),
+        )
+        task = Task.objects.create(
+            room=room,
+            title="花火を見る",
+            due_date=(now + timedelta(days=2)).date(),
+        )
+
+        form = MomentLogForm(room=room)
+        task_field = cast(forms.ModelChoiceField, form.fields["task"])
+        label = task_field.label_from_instance(task)
+
+        self.assertIn("花火を見る", label)
+        self.assertIn("まで", label)
 
 
 class AuthenticationViewTests(TestCase):

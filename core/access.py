@@ -1,6 +1,6 @@
 from django.shortcuts import get_object_or_404
 
-from .models import MomentLog, Photo, Room, Task
+from .models import Category, MomentLog, Photo, Room, Task
 
 
 def owned_rooms(user):
@@ -39,3 +39,13 @@ def owned_photos(user, room_id):
 def get_owned_photo(user, room_id, photo_id):
     room = get_owned_room(user, room_id)
     return get_object_or_404(Photo, pk=photo_id, moment_log__room=room)
+
+
+def owned_categories(user, room_id):
+    room = get_owned_room(user, room_id)
+    return Category.objects.filter(room=room)
+
+
+def get_owned_category(user, room_id, category_id):
+    room = get_owned_room(user, room_id)
+    return get_object_or_404(Category, pk=category_id, room=room)

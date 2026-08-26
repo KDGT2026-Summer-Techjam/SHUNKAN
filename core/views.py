@@ -8,14 +8,17 @@ from django.utils import timezone
 from django.views.decorators.http import require_http_methods, require_POST
 
 from .access import (
+    get_owned_category,
     get_owned_moment_log,
     get_owned_photo,
     get_owned_room,
     get_owned_task,
+    owned_categories,
     owned_moment_logs,
     owned_photos,
 )
 from .forms import (
+    CategoryForm,
     MomentLogForm,
     MomentLogUpdateForm,
     PhotoUpdateForm,
@@ -178,6 +181,7 @@ def room_moments_new(request, room_id):
             with transaction.atomic():
                 moment = form.save(commit=False)
                 moment.room = room
+                moment.occurred_at = timezone.now()
                 moment.save()
                 for index, image in enumerate(processed_images):
                     Photo.objects.create(
@@ -243,6 +247,64 @@ def moments_new(request):
 @login_required
 def album(request):
     return redirect("rooms")
+
+
+@login_required
+def room_categories(request, room_id):
+    room = get_owned_room(request.user, room_id)
+    if request.method == "POST":
+        if not room_display_context(room, active_nav="tasks")["room_is_active"]:
+            raise PermissionDenied("開催中のRoomだけカテゴリを追加できます。")
+        form = CategoryForm(request.POST)
+        if form.is_valid():
+            category = form.save(commit=False)
+            category.room = room
+            category.sort_order = room.categories.count()
+            category.save()
+            return redirect("room_categories", room_id=room.pk)
+    else:
+        form = CategoryForm()
+    context = room_display_context(room, active_nav="tasks")
+    context.update(
+        {
+            "form": form,
+            "categories": room.categories.all(),
+        }
+    )
+    return render(request, "core/categories.html", context)
+
+
+@login_required
+@require_http_methods(["GET", "POST"])
+def category_update(request, room_id, category_id):
+    category = get_owned_category(request.user, room_id, category_id)
+    room = get_owned_room(request.user, room_id)
+    if not room_display_context(room, active_nav="tasks")["room_is_active"]:
+        raise PermissionDenied("開催中のRoomだけカテゴリを編集できます。")
+    form = CategoryForm(request.POST or None, instance=category)
+    if request.method == "POST" and form.is_valid():
+        form.save()
+        return redirect("room_categories", room_id=room_id)
+    context = room_display_context(room, active_nav="tasks")
+    context.update(
+        {
+            "form": form,
+            "heading": "カテゴリを更新",
+            "form_kind": "category",
+        }
+    )
+    return render(request, "core/owned_form.html", context)
+
+
+@login_required
+@require_POST
+def category_delete(request, room_id, category_id):
+    category = get_owned_category(request.user, room_id, category_id)
+    room = get_owned_room(request.user, room_id)
+    if not room_display_context(room, active_nav="tasks")["room_is_active"]:
+        raise PermissionDenied("開催中のRoomだけカテゴリを削除できます。")
+    category.delete()
+    return redirect("room_categories", room_id=room_id)
 
 
 @login_required

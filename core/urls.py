@@ -23,6 +23,21 @@ urlpatterns = [
     path("rooms/<int:room_id>/tasks/", views.room_tasks, name="room_tasks"),
     path("rooms/<int:room_id>/tasks/", views.room_tasks, name="task_list"),
     path(
+        "rooms/<int:room_id>/categories/",
+        views.room_categories,
+        name="room_categories",
+    ),
+    path(
+        "rooms/<int:room_id>/categories/<int:category_id>/update/",
+        views.category_update,
+        name="category_update",
+    ),
+    path(
+        "rooms/<int:room_id>/categories/<int:category_id>/delete/",
+        views.category_delete,
+        name="category_delete",
+    ),
+    path(
         "rooms/<int:room_id>/tasks/<int:task_id>/update/",
         views.task_update,
         name="task_update",

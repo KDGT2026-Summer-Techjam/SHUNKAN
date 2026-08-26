@@ -3,7 +3,18 @@ from typing import ClassVar, cast
 from django import forms
 from django.utils import timezone
 
-from .models import MomentLog, Photo, Room, Task
+from .models import Category, MomentLog, Photo, Room, Task
+
+
+def _task_label(task: Task) -> str:
+    if task.due_date:
+        return f"{task.title}（{task.due_date:%m/%d}まで）"
+    return f"{task.title}（期限なし）"
+
+
+class TaskChoiceField(forms.ModelChoiceField):
+    def label_from_instance(self, obj: Task) -> str:
+        return _task_label(obj)
 
 
 class RoomForm(forms.ModelForm):
@@ -54,6 +65,22 @@ class PhotoUpdateForm(forms.ModelForm):
         labels = {"caption": "写真へのひとこと"}
 
 
+class CategoryForm(forms.ModelForm):
+    class Meta:
+        model = Category
+        fields: ClassVar[list[str]] = ["name", "color"]
+        labels: ClassVar[dict[str, str]] = {
+            "name": "カテゴリ名",
+            "color": "カラー",
+        }
+        widgets: ClassVar[dict[str, object]] = {
+            "name": forms.TextInput(
+                attrs={"class": "field__input", "placeholder": "例：花火"}
+            ),
+            "color": forms.TextInput(attrs={"class": "field__input", "type": "color"}),
+        }
+
+
 class TaskForm(forms.ModelForm):
     class Meta:
         model = Task
@@ -85,13 +112,9 @@ class TaskForm(forms.ModelForm):
 class MomentLogForm(forms.ModelForm):
     class Meta:
         model = MomentLog
-        fields: ClassVar[list[str]] = ["body", "occurred_at", "category", "task"]
+        fields: ClassVar[list[str]] = ["body", "category", "task"]
         widgets: ClassVar[dict[str, object]] = {
             "body": forms.Textarea(attrs={"class": "field__textarea"}),
-            "occurred_at": forms.DateTimeInput(
-                format="%Y-%m-%dT%H:%M",
-                attrs={"class": "field__input", "type": "datetime-local"},
-            ),
             "category": forms.Select(attrs={"class": "field__input"}),
             "task": forms.Select(attrs={"class": "field__input"}),
         }
@@ -100,12 +123,10 @@ class MomentLogForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.room = room
         category_field = cast(forms.ModelChoiceField, self.fields["category"])
-        task_field = cast(forms.ModelChoiceField, self.fields["task"])
         category_field.queryset = room.categories.all()
-        task_field.queryset = room.tasks.all()
-
-    def clean_occurred_at(self):
-        occurred_at = self.cleaned_data["occurred_at"]
-        if not self.room.starts_at <= occurred_at <= self.room.ends_at:
-            raise forms.ValidationError("発生日時はRoom期間内で設定してください。")
-        return occurred_at
+        self.fields["task"] = TaskChoiceField(
+            queryset=room.tasks.all(),
+            required=False,
+            label="関連タスク",
+            widget=forms.Select(attrs={"class": "field__input"}),
+        )

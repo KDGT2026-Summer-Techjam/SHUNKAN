@@ -21,6 +21,7 @@
   <button class="primary-button" type="submit">変更を保存する</button>
   {% if form_kind == 'room' %}<a class="secondary-button" href="{% url 'room_detail' room.pk %}">キャンセル</a>
   {% elif form_kind == 'task' %}<a class="secondary-button" href="{% url 'room_tasks' room.pk %}">キャンセル</a>
+  {% elif form_kind == 'category' %}<a class="secondary-button" href="{% url 'room_categories' room.pk %}">キャンセル</a>
   {% else %}<a class="secondary-button" href="{% url 'room_album' room.pk %}">キャンセル</a>{% endif %}
 </form>
 {% endblock %}

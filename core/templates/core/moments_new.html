@@ -11,9 +11,9 @@
   {% csrf_token %}
   {% if form.non_field_errors %}<div class="form-error form-error--block" role="alert">{{ form.non_field_errors }}</div>{% endif %}
   <div class="field"><label class="field__label" for="{{ form.body.id_for_label }}">SHUNKAN-log本文</label>{{ form.body }}{% if form.body.errors %}<span class="form-error">{{ form.body.errors|striptags }}</span>{% endif %}</div>
-  <div class="field"><label class="field__label" for="{{ form.occurred_at.id_for_label }}">発生日時</label>{{ form.occurred_at }}{% if form.occurred_at.errors %}<span class="form-error">{{ form.occurred_at.errors|striptags }}</span>{% endif %}</div>
-  <div class="field"><label class="field__label" for="{{ form.task.id_for_label }}">関連タスク</label>{{ form.task }}{% if form.task.errors %}<span class="form-error">{{ form.task.errors|striptags }}</span>{% endif %}</div>
-  <div class="field"><label class="field__label" for="{{ form.category.id_for_label }}">カテゴリ</label>{{ form.category }}{% if form.category.errors %}<span class="form-error">{{ form.category.errors|striptags }}</span>{% endif %}</div>
+  <div class="room-period-card"><span class="field__label">発生日時</span><p>保存した時刻が自動で記録されます。</p><p class="room-period-card__dates">このRoomの期間: {{ room.starts_at|date:"Y/n/j H:i" }} 〜 {{ room.ends_at|date:"Y/n/j H:i" }}</p></div>
+  <div class="field"><label class="field__label" for="{{ form.task.id_for_label }}">関連タスク</label>{{ form.task }}{% if form.task.errors %}<span class="form-error">{{ form.task.errors|striptags }}</span>{% endif %}<p class="field__help">タスクは「タイトル（期限）」で表示されます。</p></div>
+  <div class="field"><label class="field__label" for="{{ form.category.id_for_label }}">カテゴリ</label>{{ form.category }}{% if form.category.errors %}<span class="form-error">{{ form.category.errors|striptags }}</span>{% endif %}<a class="text-link" href="{% url 'room_categories' room.pk %}">カテゴリを管理</a></div>
   <section class="photo-section" aria-labelledby="photo-title">
     <div class="photo-section__heading"><h2 id="photo-title">写真</h2><p>JPEG / PNG / WebP / GIF、1枚10MB・最大3枚。保存時に軽量化し、アルバムでは中央を基準に正方形で統一表示します。</p></div>
     {% for i in '123' %}
@@ -23,7 +23,7 @@
     </div>
     {% endfor %}
   </section>
-  <button class="primary-button primary-button--coral" type="submit">この瞬間を保存する</button>
+  <button class="primary-button primary-button--accent" type="submit">この瞬間を保存する</button>
   <a class="secondary-button" href="{% url 'room_detail' room.pk %}">キャンセル</a>
 </form>
 {% endblock %}
