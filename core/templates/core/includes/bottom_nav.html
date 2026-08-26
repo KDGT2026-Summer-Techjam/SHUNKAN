@@ -1,19 +1,14 @@
-{% load static %}
 <nav class="bottom-nav" aria-label="メインナビゲーション">
-  <a class="bottom-nav__item" href="{% url 'tasks' %}">
-    <img class="nav-icon-img" src="{% static 'core/images/hensyu.png' %}" alt="編集">
-  </a>
-  <a class="bottom-nav__item" href="{% url 'rooms' %}">
-    <img class="nav-icon-img" src="{% static 'core/images/room.png' %}" alt="ルーム">
-  </a>
-  <a class="bottom-nav__capture" href="{% url 'moments_new' %}">
-    <span class="capture-mark">旬</span>
-    <span>撮影</span>
-  </a>
-  <a class="bottom-nav__item" href="{% url 'album' %}">
-    <img class="nav-icon-img" src="{% static 'core/images/arubamu.png' %}" alt="アルバム">
-  </a>
-  <a class="bottom-nav__item" href="{% url 'rooms' %}" aria-label="プロフィールは準備中">
-    <img class="nav-icon-img" src="{% static 'core/images/purofiru.png' %}" alt="プロフィール">
-  </a>
+  {% if room %}
+    <a class="bottom-nav__item" href="{% url 'room_tasks' room.pk %}" {% if active_nav == 'tasks' %}aria-current="page"{% endif %}><span class="bottom-nav__icon" aria-hidden="true">✓</span><span>タスク</span></a>
+    <a class="bottom-nav__item" href="{% url 'room_detail' room.pk %}" {% if active_nav == 'room' %}aria-current="page"{% endif %}><span class="bottom-nav__icon" aria-hidden="true">⌂</span><span>Room</span></a>
+    {% if not room_is_active %}<span class="bottom-nav__capture bottom-nav__capture--disabled" aria-label="撮影（開催期間外）"><span class="capture-mark">旬</span><span>期間外</span></span>{% else %}<a class="bottom-nav__capture" href="{% url 'room_moments_new' room.pk %}" {% if active_nav == 'capture' %}aria-current="page"{% endif %}><span class="capture-mark">旬</span><span>撮影</span></a>{% endif %}
+    <a class="bottom-nav__item" href="{% url 'room_album' room.pk %}" {% if active_nav == 'album' %}aria-current="page"{% endif %}><span class="bottom-nav__icon" aria-hidden="true">▣</span><span>アルバム</span></a>
+  {% else %}
+    <span class="bottom-nav__item bottom-nav__item--disabled"><span class="bottom-nav__icon" aria-hidden="true">✓</span><span>タスク</span></span>
+    <a class="bottom-nav__item" href="{% url 'rooms' %}" {% if active_nav == 'rooms' %}aria-current="page"{% endif %}><span class="bottom-nav__icon" aria-hidden="true">⌂</span><span>Room</span></a>
+    <span class="bottom-nav__capture bottom-nav__capture--disabled"><span class="capture-mark">旬</span><span>撮影</span></span>
+    <span class="bottom-nav__item bottom-nav__item--disabled"><span class="bottom-nav__icon" aria-hidden="true">▣</span><span>アルバム</span></span>
+  {% endif %}
+  <a class="bottom-nav__item" href="{% url 'profile' %}" {% if active_nav == 'profile' %}aria-current="page"{% endif %}><span class="bottom-nav__icon" aria-hidden="true">○</span><span>プロフィール</span></a>
 </nav>

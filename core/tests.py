@@ -85,7 +85,7 @@ class AuthenticationViewTests(TestCase):
         )
 
         self.assertRedirects(response, reverse("rooms"))
-        self.assertContains(response, "ルーム一覧")
+        self.assertContains(response, '<h1 id="rooms-title">Room</h1>', html=True)
 
     def test_anonymous_user_is_redirected_to_login(self):
         response = self.client.get(reverse("rooms"))
@@ -460,6 +460,24 @@ class PhotoOwnerAccessTests(TestCase):
         self.assertEqual(response.status_code, 404)
         self.assertTrue(Photo.objects.filter(pk=self.other_photo.pk).exists())
 
+    def test_task_and_moment_posts_are_rejected_outside_active_room(self):
+        now = timezone.now()
+        rooms = (
+            Room.objects.create(owner=self.owner, name="開催前", starts_at=now + timedelta(days=1), ends_at=now + timedelta(days=2)),
+            Room.objects.create(owner=self.owner, name="終了済み", starts_at=now - timedelta(days=2), ends_at=now - timedelta(days=1)),
+            Room.objects.create(owner=self.owner, name="アーカイブ", starts_at=now - timedelta(hours=1), ends_at=now + timedelta(hours=1), is_archived=True),
+        )
+
+        for room in rooms:
+            with self.subTest(room=room.name, endpoint="tasks"):
+                response = self.client.post(reverse("room_tasks", args=[room.pk]), {"title": "追加不可"})
+                self.assertEqual(response.status_code, 403)
+                self.assertFalse(room.tasks.exists())
+            with self.subTest(room=room.name, endpoint="moments"):
+                response = self.client.post(reverse("room_moments_new", args=[room.pk]), {})
+                self.assertEqual(response.status_code, 403)
+                self.assertFalse(room.moment_logs.exists())
+
 
 class SeedDemoCommandTests(TestCase):
     @override_settings(DEBUG=True)
@@ -476,30 +494,37 @@ class UiShellRouteTests(TestCase):
             username="ui-user",
             password="test-password-123",
         )
+        self.room = Room.objects.create(
+            owner=self.user,
+            name="UI確認Room",
+            starts_at=timezone.make_aware(datetime(2026, 8, 20, 12, 0, 0)),
+            ends_at=timezone.make_aware(datetime(2026, 8, 30, 12, 0, 0)),
+        )
         self.client.force_login(self.user)
 
     def test_template_preview_pages_are_available(self):
         for path in (
             "/rooms/",
-            "/rooms/active/",
-            "/rooms/ended/",
-            "/moments/new/",
-            "/tasks/",
-            "/album/",
+            f"/rooms/{self.room.pk}/",
+            f"/rooms/{self.room.pk}/tasks/",
+            f"/rooms/{self.room.pk}/moments/new/",
+            f"/rooms/{self.room.pk}/album/",
+            "/profile/",
         ):
             with self.subTest(path=path):
                 response = self.client.get(path)
                 self.assertEqual(response.status_code, 200)
-                self.assertContains(response, "ログアウト")
 
-    def test_album_page_uses_django_static_assets(self):
-        response = self.client.get("/album/")
 
-        self.assertContains(response, "/static/core/images/fireworks.jpg")
-        self.assertContains(response, "/static/core/css/v8-ui.css")
+    def test_album_page_uses_shared_app_shell(self):
+        response = self.client.get(f"/rooms/{self.room.pk}/album/")
+
+        self.assertContains(response, "/static/core/css/app.css")
+        self.assertContains(response, "アルバム")
+        self.assertContains(response, 'aria-current="page"')
 
     def test_post_forms_include_csrf_tokens(self):
-        for path in ("/rooms/", "/tasks/", "/moments/new/"):
+        for path in ("/rooms/", f"/rooms/{self.room.pk}/tasks/", f"/rooms/{self.room.pk}/moments/new/"):
             with self.subTest(path=path):
                 response = self.client.get(path)
                 self.assertContains(response, "csrfmiddlewaretoken")

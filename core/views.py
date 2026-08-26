@@ -1,6 +1,8 @@
 from django.contrib.auth import login
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import UserCreationForm
+from django.core.exceptions import PermissionDenied
+from django.db import transaction
 from django.shortcuts import redirect, render
 from django.utils import timezone
 from django.views.decorators.http import require_http_methods, require_POST
@@ -12,10 +14,16 @@ from .access import (
     get_owned_task,
     owned_moment_logs,
     owned_photos,
-    owned_rooms,
-    owned_tasks,
 )
-from .forms import MomentLogUpdateForm, PhotoUpdateForm, RoomForm, TaskUpdateForm
+from .forms import (
+    MomentLogForm,
+    MomentLogUpdateForm,
+    PhotoUpdateForm,
+    RoomForm,
+    TaskForm,
+    TaskUpdateForm,
+)
+from .models import MomentLog, Photo, Room
 
 
 def home(request):
@@ -23,6 +31,7 @@ def home(request):
 
 
 def signup(request):
+    form: UserCreationForm
     if request.user.is_authenticated:
         return redirect("rooms")
 
@@ -49,50 +58,183 @@ def rooms(request):
     else:
         form = RoomForm()
 
+    now = timezone.now()
+    user_rooms = list(
+        Room.objects.filter(owner=request.user)
+        .prefetch_related("tasks")
+        .order_by("ends_at")
+    )
+    for room in user_rooms:
+        room.task_count = len(room.tasks.all())
+        room.completed_count = sum(task.is_completed for task in room.tasks.all())
+        room.progress_percent = (
+            round(room.completed_count / room.task_count * 100)
+            if room.task_count
+            else 0
+        )
+        if room.is_archived or room.ends_at <= now:
+            room.ui_status = "終了済み"
+        elif room.starts_at > now:
+            room.ui_status = "開催前"
+        else:
+            room.ui_status = "開催中"
+
     return render(
         request,
         "core/rooms.html",
-        {
-            "form": form,
-            "rooms": owned_rooms(request.user).order_by("ends_at"),
-            "now": timezone.now(),
-        },
+        {"form": form, "rooms": user_rooms, "now": now, "active_nav": "rooms"},
     )
+
+
+def room_display_context(room, *, active_nav):
+    now = timezone.now()
+    task_count = room.tasks.count()
+    completed_count = room.tasks.filter(is_completed=True).count()
+    if room.is_archived or room.ends_at <= now:
+        room_status = "終了済み"
+    elif room.starts_at > now:
+        room_status = "開催前"
+    else:
+        room_status = "開催中"
+    room_is_active = not room.is_archived and room.starts_at <= now < room.ends_at
+    return {
+        "room": room,
+        "now": now,
+        "room_status": room_status,
+        "room_is_active": room_is_active,
+        "room_is_ended": room.ends_at <= now,
+        "task_count": task_count,
+        "completed_count": completed_count,
+        "progress_percent": (
+            round(completed_count / task_count * 100) if task_count else 0
+        ),
+        "active_nav": active_nav,
+    }
 
 
 @login_required
 def room_detail(request, room_id):
     room = get_owned_room(request.user, room_id)
-    return render(
-        request,
-        "core/room_detail.html",
-        {"room": room, "now": timezone.now()},
+    context = room_display_context(room, active_nav="room")
+    context.update(
+        {
+            "next_task": room.tasks.filter(is_completed=False)
+            .order_by("due_date", "created_at")
+            .first(),
+            "latest_moment": room.moment_logs.order_by(
+                "-occurred_at", "-created_at"
+            ).first(),
+        }
     )
+    return render(request, "core/room_detail.html", context)
+
+
+@login_required
+def room_tasks(request, room_id):
+    room = get_owned_room(request.user, room_id)
+    if request.method == "POST":
+        if not room_display_context(room, active_nav="tasks")["room_is_active"]:
+            raise PermissionDenied("開催中のRoomだけタスクを追加できます。")
+        form = TaskForm(request.POST, room=room)
+        if form.is_valid():
+            task = form.save(commit=False)
+            task.room = room
+            task.save()
+            return redirect("room_tasks", room_id=room.pk)
+    else:
+        form = TaskForm(room=room)
+    context = room_display_context(room, active_nav="tasks")
+    context.update(
+        {
+            "form": form,
+            "tasks": room.tasks.select_related("category").order_by(
+                "is_completed", "due_date", "created_at"
+            ),
+        }
+    )
+    return render(request, "core/tasks.html", context)
+
+
+@login_required
+def room_moments_new(request, room_id):
+    room = get_owned_room(request.user, room_id)
+    if request.method == "POST":
+        if not room_display_context(room, active_nav="capture")["room_is_active"]:
+            raise PermissionDenied("開催中のRoomだけ今を残せます。")
+        form = MomentLogForm(request.POST, room=room)
+        images = request.FILES.getlist("images")
+        captions = request.POST.getlist("captions")
+        if len(images) > 3:
+            form.add_error(None, "写真は3枚までです。")
+        if form.is_valid():
+            with transaction.atomic():
+                moment = form.save(commit=False)
+                moment.room = room
+                moment.save()
+                for index, image in enumerate(images):
+                    Photo.objects.create(
+                        moment_log=moment,
+                        image=image,
+                        caption=captions[index] if index < len(captions) else "",
+                        sort_order=index,
+                    )
+            return redirect("room_album", room_id=room.pk)
+    else:
+        form = MomentLogForm(room=room)
+    context = room_display_context(room, active_nav="capture")
+    context["form"] = form
+    return render(request, "core/moments_new.html", context)
+
+
+@login_required
+def room_album(request, room_id):
+    room = get_owned_room(request.user, room_id)
+    moments = (
+        MomentLog.objects.filter(room=room)
+        .prefetch_related("photos")
+        .select_related("task", "category")
+        .order_by("-occurred_at", "-created_at")
+    )
+    context = room_display_context(room, active_nav="album")
+    context.update(
+        {
+            "moments": moments,
+            "completed_tasks": room.tasks.filter(is_completed=True)
+            .select_related("category")
+            .order_by("-completed_at", "-updated_at"),
+        }
+    )
+    return render(request, "core/album.html", context)
+
+
+@login_required
+def profile(request):
+    return render(request, "core/profile.html", {"active_nav": "profile"})
 
 
 @login_required
 def room_active(request):
-    return render(request, "core/room_active.html")
+    return redirect("rooms")
 
 
 @login_required
 def room_ended(request):
-    return render(request, "core/room_ended.html")
-
-
-@login_required
-def moments_new(request):
-    return render(request, "core/moments_new.html")
+    return redirect("rooms")
 
 
 @login_required
 def tasks(request):
-    return render(request, "core/tasks.html")
+    return redirect("rooms")
+
+
+@login_required
+def moments_new(request):
+    return redirect("rooms")
 
 
 @login_required
 def album(request):
-    return render(request, "core/album.html")
+    return redirect("rooms")
 
 
 @login_required
@@ -103,7 +245,11 @@ def room_update(request, room_id):
     if request.method == "POST" and form.is_valid():
         form.save()
         return redirect("room_detail", room_id=room.pk)
-    return render(request, "core/owned_form.html", {"form": form, "heading": "Roomを更新"})
+    return render(
+        request,
+        "core/owned_form.html",
+        {"form": form, "heading": "Roomを更新"},
+    )
 
 
 @login_required
@@ -115,16 +261,6 @@ def room_delete(request, room_id):
 
 
 @login_required
-def task_list(request, room_id):
-    task_qs = owned_tasks(request.user, room_id)
-    return render(
-        request,
-        "core/owned_list.html",
-        {"heading": "タスク", "items": [task.title for task in task_qs]},
-    )
-
-
-@login_required
 @require_http_methods(["GET", "POST"])
 def task_update(request, room_id, task_id):
     task = get_owned_task(request.user, room_id, task_id)
@@ -132,7 +268,11 @@ def task_update(request, room_id, task_id):
     if request.method == "POST" and form.is_valid():
         form.save()
         return redirect("task_list", room_id=room_id)
-    return render(request, "core/owned_form.html", {"form": form, "heading": "タスクを更新"})
+    return render(
+        request,
+        "core/owned_form.html",
+        {"form": form, "heading": "タスクを更新"},
+    )
 
 
 @login_required
@@ -161,7 +301,11 @@ def moment_update(request, room_id, moment_id):
     if request.method == "POST" and form.is_valid():
         form.save()
         return redirect("moment_list", room_id=room_id)
-    return render(request, "core/owned_form.html", {"form": form, "heading": "記録を更新"})
+    return render(
+        request,
+        "core/owned_form.html",
+        {"form": form, "heading": "記録を更新"},
+    )
 
 
 @login_required
@@ -193,7 +337,11 @@ def photo_update(request, room_id, photo_id):
     if request.method == "POST" and form.is_valid():
         form.save()
         return redirect("photo_list", room_id=room_id)
-    return render(request, "core/owned_form.html", {"form": form, "heading": "写真を更新"})
+    return render(
+        request,
+        "core/owned_form.html",
+        {"form": form, "heading": "写真を更新"},
+    )
 
 
 @login_required

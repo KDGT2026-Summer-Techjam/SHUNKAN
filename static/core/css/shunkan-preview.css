@@ -936,3 +936,37 @@ textarea { -webkit-tap-highlight-color: transparent; }
     height: 48px;
   }
 }
+
+/* Djangoの認証ヘッダーを追加しても、プレビューのRoom一覧の密度を保つ。 */
+.screen--with-nav {
+  padding-top: 20px;
+}
+
+.screen--with-nav .auth-header {
+  min-height: 40px;
+  margin-bottom: 8px;
+}
+
+.screen--with-nav .brand--compact {
+  margin-bottom: 12px;
+}
+
+.screen--with-nav .section {
+  margin-top: 12px;
+}
+
+/* 5ボタンを同じ幅にして、端のプロフィール画像が切れないようにする。 */
+.bottom-nav {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+.bottom-nav__capture {
+  width: 68px;
+  height: 68px;
+  min-height: 68px;
+}
+
+.nav-icon-img {
+  width: 44px;
+  height: 44px;
+}

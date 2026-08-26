@@ -4,7 +4,7 @@
 
 画面案は `core/templates/core/` に置き、Django Templatesとして表示する。画面構造、文言、フォーム項目、画面間の導線を確認したうえで、対応するIssueの範囲でデータ表示、保存処理、認証、CSS、JavaScriptを段階的に接続する。
 
-現在は `{% load static %}`、`{% static %}`、`{% url %}`、POSTフォームの `{% csrf_token %}` を接続済みである。Django標準Authによる新規登録・ログイン・ログアウトと、未ログイン利用者をRoom関連画面からログイン画面へ戻す制御も実装済みである。開発用の `DEBUG=True` 環境では `seed_demo` が公開デモアカウント `demo / demo` を作成する。Room一覧・作成・詳細はログイン中の利用者のデータだけを扱う。Task、SHUNKAN-log、Photoの実データ表示・保存、Room状態による操作制御は未実装であり、画面が表示できることは機能実装の完了を表さない。
+現在は `{% load static %}`、`{% static %}`、`{% url %}`、POSTフォームの `{% csrf_token %}` を接続済みである。Django標準Authによる新規登録・ログイン・ログアウトと、未ログイン利用者をRoom関連画面からログイン画面へ戻す制御も実装済みである。開発用の `DEBUG=True` 環境では `seed_demo` が公開デモアカウント `demo / demo` を作成する。Room一覧・作成・詳細、Task作成、SHUNKAN-logと写真の保存、Room別Album表示はログイン中の利用者のRoomへ接続済みである。Task編集・削除・完了切替、Room状態による操作制御、写真の形式・容量・DB上限保証は未実装であり、画面が表示できることは機能実装の完了を表さない。
 
 ## 現在の単体HTML
 
@@ -14,8 +14,9 @@
 | `core/templates/core/login.html` | ログイン画面 | `/accounts/login/` |
 | `core/templates/core/home.html` | ログイン画面へのリダイレクト | `/` |
 | `core/templates/core/rooms.html` | 自分のRoom一覧とRoom作成 | `/rooms/` |
-| `core/templates/core/room_active.html` | 開催中Roomのホーム | `/rooms/<room_id>/` |
-| `core/templates/core/room_ended.html` | 終了済みRoomの閲覧専用状態 | `/rooms/<room_id>/` |
+| `core/templates/core/room_detail.html` | Room状態に応じたホーム | `/rooms/<room_id>/` |
+| `core/templates/core/room_active.html` | 旧URLからRoom一覧へ案内する互換テンプレート | `/rooms/active/` |
+| `core/templates/core/room_ended.html` | 旧URLからRoom一覧へ案内する互換テンプレート | `/rooms/ended/` |
 | `core/templates/core/tasks.html` | Task一覧、追加、完了操作 | `/rooms/<room_id>/tasks/` |
 | `core/templates/core/moments_new.html` | SHUNKAN-logと写真の入力 | `/rooms/<room_id>/moments/new/` |
 | `core/templates/core/album.html` | Room別アルバム | `/rooms/<room_id>/album/` |
@@ -24,10 +25,10 @@
 
 ## 現在のテンプレート接続状態
 
-- `core/urls.py` は `/accounts/login/`、`/accounts/logout/` と、`/rooms/`、`/rooms/active/`、`/rooms/ended/`、`/tasks/`、`/moments/new/`、`/album/` を公開する。Room関連画面はログイン必須とする。
-- `core/views.py` は、ログイン中の利用者が所有するRoomの一覧・作成・詳細を扱う。Task、SHUNKAN-log、PhotoのDB取得・保存はまだ行わない。
-- CSSは `static/core/css/v8-ui.css` と、プレビューUIを取り込んだ `static/core/css/shunkan-preview.css` を使う。下部ナビ画像などは `static/core/images/` を `{% static %}` で参照する。
-- 仮の開催中・終了済みURLは画面確認用であり、将来は要件定義どおり `/rooms/<room_id>/` を使う。
+- 実機能は `/rooms/<room_id>/`、`/rooms/<room_id>/tasks/`、`/rooms/<room_id>/moments/new/`、`/rooms/<room_id>/album/` のRoom別URLで扱う。旧プレビューURLはRoom一覧へリダイレクトする互換経路である。
+- `core/views.py` は、ログイン中の利用者が所有するRoom、Task、SHUNKAN-log、Photoだけを扱う。Roomホームには実データの進捗、次のTask、最新SHUNKAN-logを表示する。
+- 撮影UI以外は `core/templates/core/base.html` を継承し、本番用CSS `static/core/css/app.css` を使う。撮影UIだけは固有体験を維持するため `shunkan-preview.css` を使う。
+- 秒単位カウントダウンは `static/core/js/countdown.js` で表示する。保存可否などのサーバー制約はJavaScriptへ委ねない。
 
 ## テンプレートを更新する手順
 

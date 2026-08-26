@@ -1,69 +1,11 @@
-{% load static %}
-<!doctype html>
-<html lang="ja">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>旬間 (SHUNKAN) | タスク</title>
-  <link rel="stylesheet" href="{% static 'core/css/v8-ui.css' %}">
-  <link rel="stylesheet" href="{% static 'core/css/shunkan-preview.css' %}">
-</head>
-<body>
-  <main class="app">
-    {% include "core/includes/auth_header.html" %}
-    <header class="page-header">
-      <a class="back-link" href="{% url 'room_active' %}">← 2026 夏</a>
-      <p class="eyebrow">2026 夏 / Task</p>
-      <h1>夏に、あと<br>何をしておこう。</h1>
-    </header>
-
-    <section class="form-card" aria-labelledby="task-form-title">
-      <h2 id="task-form-title">タスクを追加する</h2>
-      <form action="#" method="post">
-              {% csrf_token %}
-        <div class="field">
-          <label for="title">やりたいこと</label>
-          <input id="title" name="title" type="text" placeholder="例：夜の海へ行く" required>
-        </div>
-        <div class="field">
-          <label for="due-date">いつまでにする？</label>
-          <input id="due-date" name="due_date" type="date">
-        </div>
-        <div class="field">
-          <label for="category">カテゴリ</label>
-          <select id="category" name="category">
-            <option value="">選ばない</option>
-            <option value="summer-memory">夏の思い出</option>
-            <option value="food">食べたいもの</option>
-          </select>
-        </div>
-        <button class="button" type="submit">タスクに追加する</button>
-      </form>
-      <p class="field-note">静的版では保存しません。DjangoではPOSTで保存し、カテゴリと期限がこのRoomに属することを検証します。</p>
-    </section>
-
-    <section class="section" aria-labelledby="active-task-title">
-      <div class="section-heading"><h2 id="active-task-title">これからやること</h2><span class="meta">2件</span></div>
-      <div class="item-list">
-        <article class="item-card">
-          <button class="check-button" aria-label="友だちと花火を見るを完了にする" type="button">完了</button>
-          <div class="item-card__body"><h3 class="item-card__title">友だちと花火を見る</h3><p class="item-card__meta">8月27日まで ・ 夏の思い出</p><p class="field-note">Djangoでは完了時刻を保存し、任意で思い出メモと写真を残せます。</p><div class="button-stack"><button class="button--quiet" type="button">編集</button><button class="button--quiet" type="button">削除</button></div></div>
-        </article>
-        <article class="item-card">
-          <button class="check-button" aria-label="かき氷を食べるを完了にする" type="button">完了</button>
-          <div class="item-card__body"><h3 class="item-card__title">かき氷を食べる</h3><p class="item-card__meta">8月30日まで ・ 食べたいもの</p></div>
-        </article>
-      </div>
-    </section>
-
-    <section class="section" aria-labelledby="completed-task-title">
-      <div class="section-heading"><h2 id="completed-task-title">できたこと</h2><span class="meta">2件</span></div>
-      <article class="item-card">
-        <button class="check-button check-button--done" aria-label="夕方の散歩を未完了に戻す" type="button">✓</button>
-        <div class="item-card__body"><h3 class="item-card__title item-card__title--completed">夕方の散歩をする</h3><p class="item-card__meta">8月19日 18:12に完了</p><div class="button-stack"><button class="button--quiet" type="button">未完了に戻す</button><button class="button--quiet" type="button">編集</button><button class="button--quiet" type="button">削除</button></div></div>
-      </article>
-    </section>
-  </main>
-  {% include "core/includes/bottom_nav.html" %}
-</body>
-</html>
+{% extends "core/base.html" %}
+{% block title %}タスク | 旬間 (SHUNKAN){% endblock %}
+{% block screen_class %}screen--with-nav{% endblock %}
+{% block content %}
+<header class="page-header page-header--center"><p class="page-header__eyebrow">{{ room.name }}</p><h1>タスク</h1><p>このRoomで、なにしたい？</p></header>
+<section aria-labelledby="task-list-title"><div class="section-heading"><h2 id="task-list-title">やりたいこと</h2><strong>{{ tasks|length }}件</strong></div><div class="task-list">
+{% for task in tasks %}<article class="task-card {% if task.is_completed %}task-card--completed{% endif %}"><div class="task-card__status" aria-label="{% if task.is_completed %}完了{% else %}未完了{% endif %}">{% if task.is_completed %}✓{% else %}○{% endif %}</div><div class="task-card__body"><h3>{{ task.title }}</h3><p class="task-card__meta">{% if task.category %}#{{ task.category.name }}　{% endif %}{% if task.due_date %}{{ task.due_date|date:"n/j" }}まで{% else %}期限なし{% endif %}</p></div></article>{% empty %}<div class="empty-state"><strong>まだタスクがありません</strong><span>このRoomでやりたいことを追加してみよう。</span></div>{% endfor %}
+</div></section>
+<section class="section" aria-labelledby="task-create-title"><div class="section-heading"><h2 id="task-create-title">タスクを追加</h2></div>{% if room_is_active %}<form class="form-stack form-card" method="post">{% csrf_token %}{% if form.non_field_errors %}<div class="form-error form-error--block" role="alert">{{ form.non_field_errors }}</div>{% endif %}<div class="field"><label class="field__label" for="{{ form.title.id_for_label }}">タイトル</label>{{ form.title }}{% if form.title.errors %}<span class="form-error">{{ form.title.errors|striptags }}</span>{% endif %}</div><div class="field"><label class="field__label" for="{{ form.due_date.id_for_label }}">期限</label>{{ form.due_date }}{% if form.due_date.errors %}<span class="form-error">{{ form.due_date.errors|striptags }}</span>{% endif %}</div><div class="field"><label class="field__label" for="{{ form.category.id_for_label }}">カテゴリ</label>{{ form.category }}{% if form.category.errors %}<span class="form-error">{{ form.category.errors|striptags }}</span>{% endif %}</div><button class="primary-button" type="submit">保存する</button></form>{% else %}<p class="readonly-notice">開催期間外のため、タスクは追加できません。</p>{% endif %}</section>
+{% endblock %}
+{% block navigation %}{% include "core/includes/bottom_nav.html" %}{% endblock %}

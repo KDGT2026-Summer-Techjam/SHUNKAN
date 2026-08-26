@@ -1,0 +1,21 @@
+{% load static %}
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>{% block title %}旬間 (SHUNKAN){% endblock %}</title>
+  <link rel="stylesheet" href="{% static 'core/css/app.css' %}">
+  {% block extra_head %}{% endblock %}
+</head>
+<body>
+  <div class="app-shell">
+    <a class="skip-link" href="#main-content">本文へ移動</a>
+    <main id="main-content" class="screen {% block screen_class %}{% endblock %}">
+      {% block content %}{% endblock %}
+    </main>
+    {% block navigation %}{% endblock %}
+  </div>
+  {% block scripts %}{% endblock %}
+</body>
+</html>
