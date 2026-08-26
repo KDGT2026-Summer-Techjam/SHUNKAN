@@ -179,5 +179,3 @@ class Photo(models.Model):
 
     class Meta:
         ordering: ClassVar[list[str]] = ["sort_order", "created_at"]
-        
-    
