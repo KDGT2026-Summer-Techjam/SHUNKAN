@@ -4,6 +4,7 @@ from django import forms
 from django.utils import timezone
 
 from .models import Category, MomentLog, Photo, Room, Task
+from .room_state import log_post_permission
 
 
 def _task_label(task: Task) -> str:
@@ -110,18 +111,26 @@ class TaskForm(forms.ModelForm):
 
 
 class MomentLogForm(forms.ModelForm):
+    entry_type = forms.ChoiceField(
+        choices=MomentLog.EntryType.choices,
+        required=False,
+        widget=forms.HiddenInput(),
+    )
+
     class Meta:
         model = MomentLog
-        fields: ClassVar[list[str]] = ["body", "category", "task"]
+        fields: ClassVar[list[str]] = ["body", "category", "task", "entry_type"]
         widgets: ClassVar[dict[str, object]] = {
             "body": forms.Textarea(attrs={"class": "field__textarea"}),
             "category": forms.Select(attrs={"class": "field__input"}),
             "task": forms.Select(attrs={"class": "field__input"}),
         }
 
-    def __init__(self, *args, room, **kwargs):
+    def __init__(self, *args, room, now=None, **kwargs):
         super().__init__(*args, **kwargs)
         self.room = room
+        self.now = now
+        self.permission = None
         category_field = cast(forms.ModelChoiceField, self.fields["category"])
         category_field.queryset = room.categories.all()
         self.fields["task"] = TaskChoiceField(
@@ -130,3 +139,14 @@ class MomentLogForm(forms.ModelForm):
             label="関連タスク",
             widget=forms.Select(attrs={"class": "field__input"}),
         )
+
+    def clean_entry_type(self):
+        return self.cleaned_data.get("entry_type") or MomentLog.EntryType.MOMENT
+
+    def clean(self):
+        cleaned_data = super().clean()
+        entry_type = cleaned_data.get("entry_type") or MomentLog.EntryType.MOMENT
+        self.permission = log_post_permission(self.room, entry_type, now=self.now)
+        if not self.permission.allowed:
+            raise forms.ValidationError(self.permission.message)
+        return cleaned_data

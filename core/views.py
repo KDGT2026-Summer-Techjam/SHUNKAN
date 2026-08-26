@@ -28,6 +28,7 @@ from .forms import (
 )
 from .image_processing import process_uploaded_image
 from .models import MomentLog, Photo, Room
+from .room_state import log_post_permission
 
 
 def home(request):
@@ -162,10 +163,23 @@ def room_tasks(request, room_id):
 @login_required
 def room_moments_new(request, room_id):
     room = get_owned_room(request.user, room_id)
+    now = timezone.now()
+    moment_permission = log_post_permission(room, MomentLog.EntryType.MOMENT, now=now)
+    reflection_permission = log_post_permission(
+        room, MomentLog.EntryType.REFLECTION, now=now
+    )
     if request.method == "POST":
-        if not room_display_context(room, active_nav="capture")["room_is_active"]:
-            raise PermissionDenied("開催中のRoomだけ今を残せます。")
-        form = MomentLogForm(request.POST, room=room)
+        requested_entry_type = (
+            request.POST.get("entry_type") or MomentLog.EntryType.MOMENT
+        )
+        permission = (
+            reflection_permission
+            if requested_entry_type == MomentLog.EntryType.REFLECTION
+            else moment_permission
+        )
+        if not permission.allowed:
+            raise PermissionDenied(permission.message)
+        form = MomentLogForm(request.POST, room=room, now=now)
         images = request.FILES.getlist("images")
         captions = request.POST.getlist("captions")
         processed_images = []
@@ -192,9 +206,17 @@ def room_moments_new(request, room_id):
                     )
             return redirect("room_album", room_id=room.pk)
     else:
-        form = MomentLogForm(room=room)
+        form = MomentLogForm(room=room, now=now)
     context = room_display_context(room, active_nav="capture")
-    context["form"] = form
+    context.update(
+        {
+            "form": form,
+            "moment_permission": moment_permission,
+            "reflection_permission": reflection_permission,
+            "can_post_moment": moment_permission.allowed,
+            "can_post_reflection": reflection_permission.allowed,
+        }
+    )
     return render(request, "core/moments_new.html", context)
 
 

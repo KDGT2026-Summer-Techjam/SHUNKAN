@@ -23,6 +23,7 @@ from .image_processing import (
 )
 from .forms import MomentLogForm
 from .models import Room, Category, Task, MomentLog, Photo
+from .room_state import log_post_permission
 
 
 class ImageProcessingTests(TestCase):
@@ -356,6 +357,256 @@ class MomentLogFormTests(TestCase):
 
         self.assertIn("花火を見る", label)
         self.assertIn("まで", label)
+
+
+class LogPostPermissionTests(TestCase):
+    def setUp(self):
+        self.user = get_user_model().objects.create_user(
+            username="permission-user",
+            password="test-password-123",
+        )
+        self.starts_at = timezone.make_aware(datetime(2026, 8, 1, 9, 0, 0))
+        self.ends_at = timezone.make_aware(datetime(2026, 8, 31, 23, 59, 59))
+        self.reflection_deadline_at = timezone.make_aware(
+            datetime(2026, 9, 7, 23, 59, 59)
+        )
+        self.tick = timedelta(microseconds=1)
+
+    def make_room(self, *, reflection_deadline_at=None, is_archived=False):
+        return Room.objects.create(
+            owner=self.user,
+            name="判定確認Room",
+            starts_at=self.starts_at,
+            ends_at=self.ends_at,
+            reflection_deadline_at=reflection_deadline_at,
+            is_archived=is_archived,
+        )
+
+    def test_moment_is_allowed_from_start_until_just_before_end(self):
+        room = self.make_room(reflection_deadline_at=self.reflection_deadline_at)
+
+        for label, now in (
+            ("開始時刻", self.starts_at),
+            ("終了直前", self.ends_at - self.tick),
+        ):
+            with self.subTest(boundary=label):
+                permission = log_post_permission(
+                    room, MomentLog.EntryType.MOMENT, now=now
+                )
+                self.assertTrue(permission.allowed)
+                self.assertEqual(permission.reason, "moment_open")
+
+    def test_moment_is_rejected_before_start_and_from_end(self):
+        room = self.make_room(reflection_deadline_at=self.reflection_deadline_at)
+
+        for label, now, reason in (
+            ("開始直前", self.starts_at - self.tick, "room_not_started"),
+            ("終了時刻", self.ends_at, "room_ended"),
+            ("終了後", self.ends_at + timedelta(days=1), "room_ended"),
+        ):
+            with self.subTest(boundary=label):
+                permission = log_post_permission(
+                    room, MomentLog.EntryType.MOMENT, now=now
+                )
+                self.assertFalse(permission.allowed)
+                self.assertEqual(permission.reason, reason)
+
+    def test_reflection_is_allowed_from_end_until_deadline(self):
+        room = self.make_room(reflection_deadline_at=self.reflection_deadline_at)
+
+        for label, now in (
+            ("終了時刻", self.ends_at),
+            ("期限直前", self.reflection_deadline_at - self.tick),
+            ("期限時刻", self.reflection_deadline_at),
+        ):
+            with self.subTest(boundary=label):
+                permission = log_post_permission(
+                    room, MomentLog.EntryType.REFLECTION, now=now
+                )
+                self.assertTrue(permission.allowed)
+                self.assertEqual(permission.reason, "reflection_open")
+
+    def test_reflection_is_rejected_before_end_and_after_deadline(self):
+        room = self.make_room(reflection_deadline_at=self.reflection_deadline_at)
+
+        for label, now, reason in (
+            ("終了直前", self.ends_at - self.tick, "room_not_ended"),
+            ("期限直後", self.reflection_deadline_at + self.tick, "reflection_closed"),
+        ):
+            with self.subTest(boundary=label):
+                permission = log_post_permission(
+                    room, MomentLog.EntryType.REFLECTION, now=now
+                )
+                self.assertFalse(permission.allowed)
+                self.assertEqual(permission.reason, reason)
+
+    def test_reflection_is_rejected_when_deadline_is_unset(self):
+        room = self.make_room()
+
+        permission = log_post_permission(
+            room, MomentLog.EntryType.REFLECTION, now=self.ends_at
+        )
+
+        self.assertFalse(permission.allowed)
+        self.assertEqual(permission.reason, "reflection_deadline_unset")
+
+    def test_archived_room_rejects_every_entry_type(self):
+        room = self.make_room(
+            reflection_deadline_at=self.reflection_deadline_at,
+            is_archived=True,
+        )
+
+        for entry_type, now in (
+            (MomentLog.EntryType.MOMENT, self.starts_at),
+            (MomentLog.EntryType.REFLECTION, self.ends_at),
+        ):
+            with self.subTest(entry_type=entry_type):
+                permission = log_post_permission(room, entry_type, now=now)
+                self.assertFalse(permission.allowed)
+                self.assertEqual(permission.reason, "archived")
+
+    def test_form_rejects_post_outside_the_allowed_window(self):
+        room = self.make_room(reflection_deadline_at=self.reflection_deadline_at)
+
+        form = MomentLogForm(
+            {"body": "終了後の通常ログ", "entry_type": MomentLog.EntryType.MOMENT},
+            room=room,
+            now=self.ends_at,
+        )
+
+        self.assertFalse(form.is_valid())
+        self.assertIn(
+            "Roomが終了したため、通常のSHUNKAN-logは投稿できません。",
+            form.non_field_errors(),
+        )
+
+
+class ReflectionPostViewTests(TestCase):
+    def setUp(self):
+        self.user = get_user_model().objects.create_user(
+            username="reflection-user",
+            password="test-password-123",
+        )
+        self.client.force_login(self.user)
+        self.now = timezone.now()
+
+    def make_room(self, *, starts_at, ends_at, reflection_deadline_at=None):
+        return Room.objects.create(
+            owner=self.user,
+            name="振り返りRoom",
+            starts_at=starts_at,
+            ends_at=ends_at,
+            reflection_deadline_at=reflection_deadline_at,
+        )
+
+    def post_log(self, room, entry_type):
+        return self.client.post(
+            reverse("room_moments_new", args=[room.pk]),
+            {"body": "投稿本文", "entry_type": entry_type},
+        )
+
+    def test_reflection_is_saved_inside_the_reflection_period(self):
+        room = self.make_room(
+            starts_at=self.now - timedelta(days=3),
+            ends_at=self.now - timedelta(days=1),
+            reflection_deadline_at=self.now + timedelta(days=1),
+        )
+
+        response = self.post_log(room, MomentLog.EntryType.REFLECTION)
+
+        self.assertRedirects(response, reverse("room_album", args=[room.pk]))
+        log = MomentLog.objects.get(room=room)
+        self.assertEqual(log.entry_type, MomentLog.EntryType.REFLECTION)
+
+    def test_moment_is_rejected_inside_the_reflection_period(self):
+        room = self.make_room(
+            starts_at=self.now - timedelta(days=3),
+            ends_at=self.now - timedelta(days=1),
+            reflection_deadline_at=self.now + timedelta(days=1),
+        )
+
+        response = self.post_log(room, MomentLog.EntryType.MOMENT)
+
+        self.assertEqual(response.status_code, 403)
+        self.assertFalse(MomentLog.objects.filter(room=room).exists())
+
+    def test_reflection_is_rejected_while_the_room_is_open(self):
+        room = self.make_room(
+            starts_at=self.now - timedelta(hours=1),
+            ends_at=self.now + timedelta(hours=1),
+            reflection_deadline_at=self.now + timedelta(days=7),
+        )
+
+        response = self.post_log(room, MomentLog.EntryType.REFLECTION)
+
+        self.assertEqual(response.status_code, 403)
+        self.assertFalse(MomentLog.objects.filter(room=room).exists())
+
+    def test_reflection_is_rejected_when_the_deadline_is_unset(self):
+        room = self.make_room(
+            starts_at=self.now - timedelta(days=3),
+            ends_at=self.now - timedelta(days=1),
+        )
+
+        response = self.post_log(room, MomentLog.EntryType.REFLECTION)
+
+        self.assertEqual(response.status_code, 403)
+        self.assertFalse(MomentLog.objects.filter(room=room).exists())
+
+    def test_reflection_is_rejected_after_the_deadline(self):
+        room = self.make_room(
+            starts_at=self.now - timedelta(days=5),
+            ends_at=self.now - timedelta(days=3),
+            reflection_deadline_at=self.now - timedelta(days=1),
+        )
+
+        response = self.post_log(room, MomentLog.EntryType.REFLECTION)
+
+        self.assertEqual(response.status_code, 403)
+        self.assertFalse(MomentLog.objects.filter(room=room).exists())
+
+    def test_moment_is_saved_while_the_room_is_open(self):
+        room = self.make_room(
+            starts_at=self.now - timedelta(hours=1),
+            ends_at=self.now + timedelta(hours=1),
+            reflection_deadline_at=self.now + timedelta(days=7),
+        )
+
+        response = self.post_log(room, MomentLog.EntryType.MOMENT)
+
+        self.assertRedirects(response, reverse("room_album", args=[room.pk]))
+        log = MomentLog.objects.get(room=room)
+        self.assertEqual(log.entry_type, MomentLog.EntryType.MOMENT)
+
+    def test_unknown_entry_type_is_not_saved(self):
+        room = self.make_room(
+            starts_at=self.now - timedelta(hours=1),
+            ends_at=self.now + timedelta(hours=1),
+            reflection_deadline_at=self.now + timedelta(days=7),
+        )
+
+        response = self.post_log(room, "hacked")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("entry_type", response.context["form"].errors)
+        self.assertFalse(MomentLog.objects.filter(room=room).exists())
+
+    def test_page_returns_the_reason_when_posting_is_closed(self):
+        room = self.make_room(
+            starts_at=self.now - timedelta(days=3),
+            ends_at=self.now - timedelta(days=1),
+            reflection_deadline_at=self.now + timedelta(days=1),
+        )
+
+        response = self.client.get(reverse("room_moments_new", args=[room.pk]))
+
+        self.assertFalse(response.context["can_post_moment"])
+        self.assertTrue(response.context["can_post_reflection"])
+        self.assertEqual(response.context["moment_permission"].reason, "room_ended")
+        self.assertEqual(
+            response.context["moment_permission"].message,
+            "Roomが終了したため、通常のSHUNKAN-logは投稿できません。",
+        )
 
 
 class AuthenticationViewTests(TestCase):
