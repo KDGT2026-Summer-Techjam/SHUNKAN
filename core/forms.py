@@ -94,6 +94,24 @@ class CategoryForm(forms.ModelForm):
             "color": forms.TextInput(attrs={"class": "field__input", "type": "color"}),
         }
 
+    def __init__(self, *args, room, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.room = room
+        # ModelFormの検証で同名重複を同一Room内で判定できるようにする。
+        self.instance.room = room
+
+    def clean_name(self):
+        name = self.cleaned_data["name"]
+        room = self.instance.room
+        if room is not None and room.pk is not None:
+            duplicates = Category.objects.filter(
+                room=room,
+                name=name,
+            ).exclude(pk=self.instance.pk)
+            if duplicates.exists():
+                raise forms.ValidationError("同じRoomに同じ名前のカテゴリが既にあります。")
+        return name
+
 
 class TaskForm(forms.ModelForm):
     class Meta:
@@ -110,6 +128,8 @@ class TaskForm(forms.ModelForm):
     def __init__(self, *args, room, **kwargs):
         super().__init__(*args, **kwargs)
         self.room = room
+        # ModelFormのモデル検証でTask.clean()がRoom期間を正しく参照できるようにする。
+        self.instance.room = room
         category_field = cast(forms.ModelChoiceField, self.fields["category"])
         category_field.queryset = room.categories.all()
 

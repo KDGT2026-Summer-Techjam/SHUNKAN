@@ -123,6 +123,10 @@ class Task(models.Model):
     def clean(self):
         super().clean()
 
+        # Room未設定の保存経路ではRoom参照による検証をスキップする。
+        if not self.room_id:
+            return
+
         if self.category is not None and self.category.room_id != self.room_id:
             raise ValidationError(
                 {"category": "Category must belong to the same Room."}
@@ -264,3 +268,4 @@ class Photo(models.Model):
                 raise ValidationError(
                     {"moment_log": "1件のSHUNKAN-logに保存できる写真は3枚までです。"}
                 )
+    
