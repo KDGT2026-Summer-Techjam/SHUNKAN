@@ -30,6 +30,7 @@
 | `DATABASE_URL` | Render PostgreSQL | 本番DB接続 |
 | `DJANGO_SECRET_KEY` | Renderが生成 | セッション・CSRF署名 |
 | `DJANGO_DEBUG` | `false` | 本番モード |
+| `ALLOW_PHOTO_UPLOADS` | `false` | 外部ストレージ導入まで写真保存を停止 |
 | `RENDER_EXTERNAL_HOSTNAME` | Renderが提供 | Renderの公開URLを許可（Django設定で自動利用） |
 
 カスタムドメインを追加した場合は、RenderのWeb Serviceに次を追加して再デプロイする。
@@ -41,6 +42,19 @@ DJANGO_CSRF_TRUSTED_ORIGINS=https://app.example.com
 
 実際のURL・パスワード・接続文字列は、Git、Issue、チャットに記録しない。
 
+## PostgreSQL認証情報が流出した場合のローテーション
+
+接続文字列をチャット、Issue、ログ等へ貼った場合は、削除だけではなく直ちに失効させる。
+
+1. Render Dashboardで対象DB `shunkan-db` を開く。
+2. **Info** の認証情報から **Reset Database Password**（表示名は変更される場合がある）を実行する。
+3. Connected Serviceの `shunkan` にある `DATABASE_URL` が `shunkan-db` の `connectionString` 参照であることを確認する。手入力値なら、新しいInternal Database URLへ置き換える。
+4. Web Serviceを再デプロイし、migrationと起動が成功することを確認する。
+5. 旧URLを保存していたローカル `.env`、CI、共有メモ、シェル履歴等を新しい値へ更新または削除する。新しいURLはGit・Issue・チャットへ貼らない。
+6. `python manage.py showmigrations` 相当の確認と、ログイン・Room一覧表示を行う。
+
+パスワードのリセットからWeb Service再起動までは、一時的にDB接続エラーが発生し得るため連続して実施する。漏えい範囲が不明な場合は、DB内ユーザー情報や不審な変更も確認する。
+
 ## 公開後の確認
 
 1. `/accounts/login/`が表示される。
@@ -51,4 +65,4 @@ DJANGO_CSRF_TRUSTED_ORIGINS=https://app.example.com
 
 ## 写真を有効化する前の注意
 
-Render Web Serviceのローカルファイル領域は永続ストレージではない。写真アップロードの実処理を公開するIssueでは、Render Persistent Diskまたは外部画像ストレージを選び、アップロード先を設定してから有効化する。静的ファイルはビルド時に収集するため、この制約の対象ではない。
+Render Web Serviceのローカルファイル領域は永続ストレージではない。現在は `ALLOW_PHOTO_UPLOADS=false` により本番の写真アップロードを停止する。Render Persistent Diskまたは外部画像ストレージを設定し、再デプロイ後も画像が残ることを確認してから `true` へ変更する。静的ファイルはビルド時に収集するため、この制約の対象ではない。

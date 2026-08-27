@@ -1,9 +1,10 @@
 {% extends "core/base.html" %}
+{% load static %}
 {% block title %}ログイン | 旬間 (SHUNKAN){% endblock %}
 {% block screen_class %}screen--auth{% endblock %}
 {% block content %}
 <section class="auth-panel" aria-labelledby="login-title">
-  <div class="brand brand--large"><div class="brand__jp">旬間<span>。</span></div><div class="brand__en">SHUNKAN</div></div>
+  <div class="brand brand--large"><img class="brand__logo" src="{% static 'core/images/shunkan-logo.png' %}" alt="旬間 (SHUNKAN)"></div>
   <h1 id="login-title">ログイン</h1>
   <form class="form-stack" method="post">
     {% csrf_token %}
@@ -14,6 +15,5 @@
     <button class="primary-button" type="submit">ログイン</button>
   </form>
   <p class="auth-switch">アカウントがない場合 <a href="{% url 'signup' %}">新規登録</a></p>
-  <p class="preview-note">ローカル開発用: <strong>demo / demo</strong></p>
 </section>
 {% endblock %}
