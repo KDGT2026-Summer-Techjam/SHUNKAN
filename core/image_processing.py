@@ -1,8 +1,10 @@
+from datetime import datetime
 from io import BytesIO
 from pathlib import Path
 
 from django.core.exceptions import ValidationError
 from django.core.files.base import ContentFile
+from django.utils import timezone
 from PIL import Image, ImageOps, ImageSequence, UnidentifiedImageError
 
 MAX_UPLOAD_SIZE = 10 * 1024 * 1024
@@ -15,6 +17,40 @@ FORMAT_EXTENSIONS = {
     "WEBP": ".webp",
     "GIF": ".gif",
 }
+
+# Pillowのgetexif()はタグIDを整数で返す。
+# 0x9003: DateTimeOriginal、0x9004: DateTimeDigitized
+EXIF_DATETIME_TAGS = (0x9003, 0x9004)
+EXIF_DATETIME_FORMAT = "%Y:%m:%d %H:%M:%S"
+
+
+def read_captured_at(uploaded_file):
+    """EXIFの撮影日時を読む。位置情報・端末情報は一切読まない。
+
+    読み取れない場合はNoneを返す。JPEG以外やEXIFが無い画像でも安全にNoneを返す。
+    """
+    try:
+        with Image.open(uploaded_file) as image:
+            exif = image.getexif()
+            if not exif:
+                return None
+            for tag in EXIF_DATETIME_TAGS:
+                raw = exif.get(tag)
+                if not raw:
+                    continue
+                try:
+                    naive = datetime.strptime(str(raw), EXIF_DATETIME_FORMAT)
+                    return timezone.make_aware(
+                        naive,
+                        timezone.get_current_timezone(),
+                    )
+                except ValueError:
+                    continue
+    except (OSError, ValueError, SyntaxError, UnidentifiedImageError):
+        return None
+    finally:
+        uploaded_file.seek(0)
+    return None
 
 
 def process_uploaded_image(uploaded_file):

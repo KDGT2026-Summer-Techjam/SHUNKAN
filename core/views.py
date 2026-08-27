@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from django.conf import settings
 from django.contrib.auth import login
 from django.contrib.auth.decorators import login_required
@@ -29,6 +31,8 @@ from .forms import (
     TaskUpdateForm,
     _task_label,
 )
+from .image_processing import process_uploaded_image, read_captured_at
+from .models import MomentLog, Photo, Room, Task
 from .image_processing import process_uploaded_image
 from .models import Category, MomentLog, Photo, Room, Task
 from .room_state import log_post_permission, require_active_room, room_is_active
@@ -232,7 +236,10 @@ def room_moments_new(request, room_id):
         form = MomentLogForm(request.POST, room=room, now=now)
         images = request.FILES.getlist("images")
         captions = request.POST.getlist("captions")
+        captured_ats = request.POST.getlist("captured_at")
+        captured_at_sources = request.POST.getlist("captured_at_source")
         processed_images = []
+        parsed_captured_data = []
         complete_task = request.POST.get("complete_task") == "1"
         if images and not settings.ALLOW_PHOTO_UPLOADS:
             form.add_error(
@@ -251,6 +258,50 @@ def room_moments_new(request, room_id):
                     processed_images.append(process_uploaded_image(image))
                 except ValidationError as error:
                     form.add_error(None, f"写真{index}: {error.messages[0]}")
+
+                raw_captured_at = (
+                    captured_ats[index - 1]
+                    if index - 1 < len(captured_ats)
+                    else ""
+                ).strip()
+                requested_source = (
+                    captured_at_sources[index - 1]
+                    if index - 1 < len(captured_at_sources)
+                    else Photo.CapturedAtSource.UNKNOWN
+                )
+                if not raw_captured_at:
+                    parsed_captured_data.append(
+                        (None, Photo.CapturedAtSource.UNKNOWN)
+                    )
+                    continue
+                if requested_source == Photo.CapturedAtSource.EXIF:
+                    exif_captured_at = read_captured_at(image)
+                    if exif_captured_at is not None:
+                        parsed_captured_data.append(
+                            (exif_captured_at, Photo.CapturedAtSource.EXIF)
+                        )
+                        continue
+                try:
+                    parsed = datetime.fromisoformat(raw_captured_at)
+                    captured_at = timezone.make_aware(
+                        parsed,
+                        timezone.get_current_timezone(),
+                    )
+                except ValueError:
+                    form.add_error(None, f"写真{index}: 撮影日時を確認してください。")
+                    parsed_captured_data.append(
+                        (None, Photo.CapturedAtSource.UNKNOWN)
+                    )
+                    continue
+                source = (
+                    requested_source
+                    if requested_source in {
+                        Photo.CapturedAtSource.EXIF,
+                        Photo.CapturedAtSource.MANUAL,
+                    }
+                    else Photo.CapturedAtSource.MANUAL
+                )
+                parsed_captured_data.append((captured_at, source))
         if form.is_valid():
             with transaction.atomic():
                 moment = form.save(commit=False)
@@ -263,10 +314,13 @@ def room_moments_new(request, room_id):
                     moment.task.completed_at = completed_at
                     moment.task.save(update_fields=["is_completed", "completed_at", "updated_at"])
                 for index, image in enumerate(processed_images):
+                    captured_at, source = parsed_captured_data[index]
                     Photo.objects.create(
                         moment_log=moment,
                         image=image,
                         caption=captions[index] if index < len(captions) else "",
+                        captured_at=captured_at,
+                        captured_at_source=source,
                         sort_order=index,
                     )
             return redirect("room_album", room_id=room.pk)
@@ -315,12 +369,6 @@ def profile(request):
 @login_required
 def room_active(request):
     return redirect("rooms")
-
-    recent_logs = (
-        MomentLog.objects
-        .filter(room=room)
-        .order_by("-occurred_at", "-id")[:1]
-    )
 
 @login_required
 def room_ended(request):

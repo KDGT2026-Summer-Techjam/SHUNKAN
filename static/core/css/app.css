@@ -140,6 +140,7 @@ button { color: inherit; }
 .album-photo { margin: 0; }
 .album-photo img { display: block; width: 100%; aspect-ratio: 1; border-radius: 13px; object-fit: cover; }
 .album-photo figcaption { margin-top: 6px; font-size: 11px; line-height: 1.5; }
+.album-photo__captured-at { color: var(--muted); }
 .profile-card { padding: 28px 20px; text-align: center; }
 .profile-avatar { width: 76px; height: 76px; margin: 0 auto 16px; border-radius: 50%; display: grid; place-items: center; color: #fff; background: var(--navy); font-family: serif; font-size: 34px; }
 .bottom-nav { position: fixed; left: 50%; bottom: max(10px, env(safe-area-inset-bottom)); z-index: 50; width: min(calc(100% - 20px), 410px); min-height: 92px; transform: translateX(-50%); display: grid; grid-template-columns: repeat(5, 1fr); align-items: center; padding: 7px; border: 1px solid rgba(220,226,232,.9); border-radius: 24px; background: rgba(255,253,249,.96); box-shadow: var(--shadow); backdrop-filter: blur(12px); }

@@ -243,6 +243,11 @@ class MomentLog(models.Model):
 class Photo(models.Model):
     objects = models.Manager()
 
+    class CapturedAtSource(models.TextChoices):
+        EXIF = "exif", "exif"
+        MANUAL = "manual", "manual"
+        UNKNOWN = "unknown", "unknown"
+
     moment_log = models.ForeignKey(
         MomentLog,
         on_delete=models.CASCADE,
@@ -254,6 +259,16 @@ class Photo(models.Model):
     caption = models.CharField(
         max_length=140,
         blank=True,
+    )
+    captured_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="EXIFまたは利用者が指定した撮影日時",
+    )
+    captured_at_source = models.CharField(
+        max_length=10,
+        choices=CapturedAtSource.choices,
+        default=CapturedAtSource.UNKNOWN,
     )
     sort_order = models.PositiveIntegerField(default=0)
     created_at = models.DateTimeField(auto_now_add=True)

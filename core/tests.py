@@ -22,6 +22,7 @@ from .image_processing import (
     MAX_SOURCE_PIXELS,
     MAX_UPLOAD_SIZE,
     process_uploaded_image,
+    read_captured_at,
 )
 from .forms import MomentLogForm, TaskForm
 from .models import Room, Category, Task, MomentLog, Photo
@@ -85,6 +86,43 @@ class ImageProcessingTests(TestCase):
         with self.assertRaisesMessage(ValidationError, "画像ファイルを読み取れませんでした。"):
             process_uploaded_image(upload)
 
+    def make_exif_jpeg(self, dt_string):
+        output = BytesIO()
+        exif = Image.Exif()
+        # 36867: DateTimeOriginal、36868: DateTimeDigitized
+        exif[36867] = dt_string
+        Image.new("RGB", (1200, 800), "coral").save(
+            output,
+            format="JPEG",
+            exif=exif,
+        )
+        return SimpleUploadedFile("exif.jpg", output.getvalue(), content_type="image/jpeg")
+
+    def test_read_captured_at_reads_exif_datetime(self):
+        captured = read_captured_at(self.make_exif_jpeg("2026:08:20 15:30:00"))
+
+        self.assertIsNotNone(captured)
+        self.assertEqual(captured.year, 2026)
+        self.assertEqual(captured.month, 8)
+        self.assertEqual(captured.day, 20)
+        self.assertEqual(captured.hour, 15)
+        self.assertEqual(captured.minute, 30)
+        self.assertTrue(timezone.is_aware(captured))
+
+    def test_read_captured_at_returns_none_without_exif(self):
+        output = BytesIO()
+        Image.new("RGB", (1200, 800), "coral").save(output, format="JPEG")
+        upload = SimpleUploadedFile("plain.jpg", output.getvalue(), content_type="image/jpeg")
+
+        self.assertIsNone(read_captured_at(upload))
+
+    def test_read_captured_at_returns_none_for_non_jpeg(self):
+        output = BytesIO()
+        Image.new("RGB", (1200, 800), "coral").save(output, format="PNG")
+        upload = SimpleUploadedFile("plain.png", output.getvalue(), content_type="image/png")
+
+        self.assertIsNone(read_captured_at(upload))
+
     @patch("core.image_processing.Image.open")
     def test_image_with_too_many_pixels_is_rejected(self, image_open):
         image_open.return_value = Mock(
@@ -125,6 +163,17 @@ class MomentImageUploadTests(TestCase):
         output = BytesIO()
         Image.new("RGB", (2400, 1200), "coral").save(output, format="JPEG")
         return SimpleUploadedFile("moment.jpg", output.getvalue(), content_type="image/jpeg")
+
+    def make_exif_jpeg(self, dt_string="2026:08:20 15:30:00"):
+        output = BytesIO()
+        exif = Image.Exif()
+        exif[36867] = dt_string
+        Image.new("RGB", (1200, 800), "coral").save(
+            output,
+            format="JPEG",
+            exif=exif,
+        )
+        return SimpleUploadedFile("exif.jpg", output.getvalue(), content_type="image/jpeg")
 
     def test_valid_image_post_creates_resized_photo(self):
         response = self.client.post(
@@ -187,6 +236,86 @@ class MomentImageUploadTests(TestCase):
         task.refresh_from_db()
         self.assertFalse(task.is_completed)
         self.assertFalse(MomentLog.objects.filter(task=task).exists())
+
+    def test_photo_saves_exif_candidate_as_captured_at_source(self):
+        response = self.client.post(
+            reverse("room_moments_new", args=[self.room.pk]),
+            {
+                "body": "EXIFの写真",
+                "images": self.make_exif_jpeg(),
+                "captured_at": ["2026-08-20T15:30"],
+                "captured_at_source": ["exif"],
+            },
+        )
+
+        self.assertRedirects(response, reverse("room_album", args=[self.room.pk]))
+        photo = Photo.objects.get(moment_log__room=self.room)
+        self.assertEqual(photo.captured_at_source, Photo.CapturedAtSource.EXIF)
+        self.assertIsNotNone(photo.captured_at)
+        self.assertEqual(photo.captured_at.year, 2026)
+
+    def test_photo_saves_manual_captured_at_when_user_provides_value(self):
+        response = self.client.post(
+            reverse("room_moments_new", args=[self.room.pk]),
+            {
+                "body": "手入力の写真",
+                "images": self.make_jpeg(),
+                "captured_at": ["2026-08-21T09:15"],
+                "captured_at_source": ["manual"],
+            },
+        )
+
+        self.assertRedirects(response, reverse("room_album", args=[self.room.pk]))
+        photo = Photo.objects.get(moment_log__room=self.room)
+        self.assertEqual(photo.captured_at_source, Photo.CapturedAtSource.MANUAL)
+        local_captured = timezone.localtime(photo.captured_at)
+        self.assertEqual(local_captured.hour, 9)
+        self.assertEqual(local_captured.minute, 15)
+
+    def test_photo_saves_unknown_when_exif_candidate_is_removed(self):
+        response = self.client.post(
+            reverse("room_moments_new", args=[self.room.pk]),
+            {
+                "body": "EXIF候補を削除した写真",
+                "images": self.make_exif_jpeg(),
+                "captured_at": [""],
+                "captured_at_source": ["unknown"],
+            },
+        )
+
+        self.assertRedirects(response, reverse("room_album", args=[self.room.pk]))
+        photo = Photo.objects.get(moment_log__room=self.room)
+        self.assertEqual(photo.captured_at_source, Photo.CapturedAtSource.UNKNOWN)
+        self.assertIsNone(photo.captured_at)
+
+    def test_invalid_captured_at_is_shown_as_form_error(self):
+        response = self.client.post(
+            reverse("room_moments_new", args=[self.room.pk]),
+            {
+                "body": "不正日時の写真",
+                "images": self.make_jpeg(),
+                "captured_at": ["not-a-date"],
+                "captured_at_source": ["manual"],
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "撮影日時を確認してください。")
+        self.assertFalse(Photo.objects.filter(moment_log__room=self.room).exists())
+
+    def test_photo_saves_unknown_when_no_datetime_is_given(self):
+        response = self.client.post(
+            reverse("room_moments_new", args=[self.room.pk]),
+            {
+                "body": "日時不明の写真",
+                "images": self.make_jpeg(),
+            },
+        )
+
+        self.assertRedirects(response, reverse("room_album", args=[self.room.pk]))
+        photo = Photo.objects.get(moment_log__room=self.room)
+        self.assertEqual(photo.captured_at_source, Photo.CapturedAtSource.UNKNOWN)
+        self.assertIsNone(photo.captured_at)
 
     @override_settings(ALLOW_PHOTO_UPLOADS=False)
     def test_photo_upload_is_rejected_when_storage_is_disabled(self):

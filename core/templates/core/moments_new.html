@@ -30,7 +30,9 @@
             <button type="button" class="photo-remove-button" data-photo-remove aria-label="写真{{ i }}を削除">×</button>
           </div>
           <input class="visually-hidden" type="file" name="images" accept="image/jpeg,image/png,image/webp,image/gif" data-photo-input {% if forloop.first %}id="primary-photo-input" capture="environment"{% endif %}>
+          <input type="hidden" name="captured_at_source" data-captured-at-source value="unknown">
           <label class="field"><span class="field__label">写真へのひとこと（任意）</span><input class="field__input" name="captions" maxlength="140" placeholder="この写真の思い出"></label>
+          <label class="field"><span class="field__label">撮影日時（任意）</span><input class="field__input" name="captured_at" type="datetime-local" data-captured-at><small class="field__help">空欄の場合はEXIFから自動読み取り、なければ不明として保存します。</small></label>
         </article>
       {% endfor %}
       </div>
@@ -92,4 +94,4 @@
 {% endif %}
 {% endblock %}
 {% block navigation %}{% include "core/includes/bottom_nav.html" %}{% endblock %}
-{% block scripts %}{% if photo_uploads_enabled %}<script src="{% static 'core/js/camera-capture.js' %}" defer></script>{% endif %}<script src="{% static 'core/js/quick-create.js' %}" defer></script>{% endblock %}
+{% block scripts %}<script src="https://cdn.jsdelivr.net/npm/exif-js@2.3.0/exif.js" defer></script>{% if photo_uploads_enabled %}<script src="{% static 'core/js/exif-reader.js' %}" defer></script><script src="{% static 'core/js/camera-capture.js' %}" defer></script>{% endif %}{% endblock %}
