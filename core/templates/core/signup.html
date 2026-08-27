@@ -1,9 +1,10 @@
 {% extends "core/base.html" %}
+{% load static %}
 {% block title %}新規登録 | 旬間 (SHUNKAN){% endblock %}
 {% block screen_class %}screen--auth{% endblock %}
 {% block content %}
 <section class="auth-panel" aria-labelledby="signup-title">
-  <div class="brand brand--compact"><div class="brand__jp">旬間<span>。</span></div><div class="brand__en">SHUNKAN</div></div>
+  <div class="brand brand--compact"><img class="brand__logo" src="{% static 'core/images/shunkan-logo.png' %}" alt="旬間 (SHUNKAN)"></div>
   <h1 id="signup-title">新規登録</h1>
   <p>自分だけのRoomを作り、今だけの時間を残します。</p>
   <form class="form-stack" method="post">

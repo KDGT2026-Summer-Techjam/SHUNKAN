@@ -25,14 +25,11 @@ button { color: inherit; }
 .skip-link:focus { transform: translate(-50%, 0); }
 .app-shell { width: min(100%, var(--max-width)); min-height: 100vh; min-height: 100svh; margin: 0 auto; background: var(--canvas); }
 .screen { min-height: 100svh; padding: 30px 22px 58px; }
-.screen--with-nav { padding-bottom: calc(132px + env(safe-area-inset-bottom)); }
+.screen--with-nav { padding-bottom: calc(156px + env(safe-area-inset-bottom)); }
 .screen--auth { display: grid; align-content: center; }
 .brand { text-align: center; }
-.brand__jp { font-family: "Noto Serif JP", "Yu Mincho", serif; font-size: 44px; letter-spacing: -.08em; }
-.brand__jp span { color: var(--accent); }
-.brand__en { margin-top: 5px; font-family: Georgia, serif; font-size: 11px; letter-spacing: .42em; }
-.brand--large { margin-bottom: 62px; }
-.brand--large .brand__jp { font-size: clamp(66px, 20vw, 88px); }
+.brand__logo { display: inline-block; width: min(58vw, 250px); height: auto; object-fit: contain; }
+.brand--large { margin-bottom: 46px; }
 .brand--compact { margin-bottom: 32px; }
 .page-header { margin-bottom: 28px; }
 .page-header--center { text-align: center; }
@@ -143,17 +140,18 @@ button { color: inherit; }
 .album-photo { margin: 0; }
 .album-photo img { display: block; width: 100%; aspect-ratio: 1; border-radius: 13px; object-fit: cover; }
 .album-photo figcaption { margin-top: 6px; font-size: 11px; line-height: 1.5; }
+.album-photo__captured-at { color: var(--muted); }
 .profile-card { padding: 28px 20px; text-align: center; }
 .profile-avatar { width: 76px; height: 76px; margin: 0 auto 16px; border-radius: 50%; display: grid; place-items: center; color: #fff; background: var(--navy); font-family: serif; font-size: 34px; }
-.bottom-nav { position: fixed; left: 50%; bottom: max(10px, env(safe-area-inset-bottom)); z-index: 50; width: min(calc(100% - 20px), 410px); min-height: 82px; transform: translateX(-50%); display: grid; grid-template-columns: repeat(5, 1fr); align-items: center; padding: 7px; border: 1px solid rgba(220,226,232,.9); border-radius: 24px; background: rgba(255,253,249,.96); box-shadow: var(--shadow); backdrop-filter: blur(12px); }
-.bottom-nav__item, .bottom-nav__capture { min-width: 0; min-height: 62px; border: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px; border-radius: 17px; color: var(--muted); background: transparent; font-size: 10px; font-weight: 700; text-align: center; }
+.bottom-nav { position: fixed; left: 50%; bottom: max(10px, env(safe-area-inset-bottom)); z-index: 50; width: min(calc(100% - 20px), 410px); min-height: 92px; transform: translateX(-50%); display: grid; grid-template-columns: repeat(5, 1fr); align-items: center; padding: 7px; border: 1px solid rgba(220,226,232,.9); border-radius: 24px; background: rgba(255,253,249,.96); box-shadow: var(--shadow); backdrop-filter: blur(12px); }
+.bottom-nav__item, .bottom-nav__capture { min-width: 0; min-height: 60px; border: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px; border-radius: 17px; color: var(--muted); background: transparent; font-size: 10px; font-weight: 700; text-align: center; }
 .bottom-nav__prompt { cursor: pointer; }
 .bottom-nav__icon { width: 25px; height: 25px; opacity: .62; }
 .bottom-nav__item[aria-current="page"] { color: var(--brand-blue); background: var(--brand-blue-soft); }
 .bottom-nav__item[aria-current="page"] .bottom-nav__icon { opacity: 1; }
-.bottom-nav__capture { width: 70px; height: 70px; justify-self: center; color: #fff; background: var(--accent); box-shadow: 0 8px 18px rgba(57,99,138,.3); }
+.bottom-nav__capture { width: 66px; height: 66px; align-self: center; justify-self: center; margin-top: -26px; border: 4px solid var(--canvas); color: #fff; background: var(--accent); box-shadow: 0 8px 18px rgba(57,99,138,.3); }
 .bottom-nav__capture[aria-current="page"] { outline: 3px solid var(--brand-blue); outline-offset: 2px; }
-.capture-mark { font-family: "Noto Serif JP", serif; font-size: 25px; line-height: .8; }
+.capture-mark { font-family: "Noto Serif JP", serif; font-size: 24px; line-height: .8; }
 .bottom-nav__item--disabled, .bottom-nav__capture--disabled { opacity: .35; }
 .readonly-notice { padding: 14px 16px; border-radius: 14px; color: var(--muted); background: var(--surface-cool); font-size: 13px; line-height: 1.6; }
 .room-required-dialog, .camera-dialog { width: min(calc(100% - 36px), 390px); padding: 22px; border: 0; border-radius: 24px; color: var(--text); background: var(--surface); box-shadow: var(--shadow); }
@@ -197,6 +195,7 @@ button { color: inherit; }
 .capture-actions .secondary-button { min-height: 56px; padding-inline: 10px; }
 .photo-upload-list { display: grid; gap: 14px; }
 .photo-upload-card { display: grid; gap: 12px; padding: 12px; border: 1px solid var(--line); border-radius: 17px; background: var(--surface-cool); }
+.photo-upload-card[hidden] { display: none; }
 .photo-preview-wrap { position: relative; }
 .photo-remove-button { position: absolute; top: 9px; right: 9px; width: 40px; height: 40px; border: 0; border-radius: 50%; color: #fff; background: rgba(7,27,42,.76); cursor: pointer; font-size: 22px; }
 .photo-add-button { min-height: 48px; }
@@ -208,6 +207,12 @@ button { color: inherit; }
 .capture-details summary small { color: var(--muted); font-size: 11px; }
 .capture-details[open] summary > span:last-child { transform: rotate(45deg); }
 .capture-details__body { display: grid; gap: 18px; padding: 2px 15px 15px; }
+.quick-create { margin-top: 10px; border: 1px solid var(--line); border-radius: 13px; background: var(--surface); }
+.quick-create summary { min-height: 42px; display: inline-flex; align-items: center; padding: 0 14px; cursor: pointer; color: var(--accent); font-size: 12px; font-weight: 800; list-style: none; }
+.quick-create summary::-webkit-details-marker { display: none; }
+.quick-create__body { padding: 2px 14px 14px; }
+.quick-create__form { display: grid; gap: 12px; }
+.quick-create__form .small-button { justify-self: start; }
 .owned-form input, .owned-form select, .owned-form textarea { width: 100%; min-height: 52px; padding: 0 14px; border: 1px solid var(--line); border-radius: 14px; color: var(--text); background: #fff; }
 .owned-form textarea { min-height: 150px; padding-block: 14px; resize: vertical; }
 .card-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 14px; }
@@ -231,5 +236,5 @@ button { color: inherit; }
 .managed-photo { display: block; width: 100%; aspect-ratio: 1; border-radius: 13px; object-fit: cover; }
 .managed-photo--large { max-height: 340px; }
 .page-back-button { margin-top: 22px; }
-@media (max-width: 350px) { .screen { padding-inline: 17px; } .album-entry__photos { grid-template-columns: 1fr; } .bottom-nav { width: calc(100% - 12px); } }
+@media (max-width: 350px) { .screen { padding-inline: 17px; } .album-entry__photos { grid-template-columns: 1fr; } }
 @media (min-width: 700px) { body { padding: 28px 0; } .app-shell { overflow: hidden; border-radius: 30px; box-shadow: var(--shadow); } }

@@ -22,6 +22,7 @@ from .image_processing import (
     MAX_SOURCE_PIXELS,
     MAX_UPLOAD_SIZE,
     process_uploaded_image,
+    read_captured_at,
 )
 from .forms import MomentLogForm, RoomForm
 from .models import Room, Category, Task, MomentLog, Photo
@@ -85,6 +86,43 @@ class ImageProcessingTests(TestCase):
         with self.assertRaisesMessage(ValidationError, "画像ファイルを読み取れませんでした。"):
             process_uploaded_image(upload)
 
+    def make_exif_jpeg(self, dt_string):
+        output = BytesIO()
+        exif = Image.Exif()
+        # 36867: DateTimeOriginal、36868: DateTimeDigitized
+        exif[36867] = dt_string
+        Image.new("RGB", (1200, 800), "coral").save(
+            output,
+            format="JPEG",
+            exif=exif,
+        )
+        return SimpleUploadedFile("exif.jpg", output.getvalue(), content_type="image/jpeg")
+
+    def test_read_captured_at_reads_exif_datetime(self):
+        captured = read_captured_at(self.make_exif_jpeg("2026:08:20 15:30:00"))
+
+        self.assertIsNotNone(captured)
+        self.assertEqual(captured.year, 2026)
+        self.assertEqual(captured.month, 8)
+        self.assertEqual(captured.day, 20)
+        self.assertEqual(captured.hour, 15)
+        self.assertEqual(captured.minute, 30)
+        self.assertTrue(timezone.is_aware(captured))
+
+    def test_read_captured_at_returns_none_without_exif(self):
+        output = BytesIO()
+        Image.new("RGB", (1200, 800), "coral").save(output, format="JPEG")
+        upload = SimpleUploadedFile("plain.jpg", output.getvalue(), content_type="image/jpeg")
+
+        self.assertIsNone(read_captured_at(upload))
+
+    def test_read_captured_at_returns_none_for_non_jpeg(self):
+        output = BytesIO()
+        Image.new("RGB", (1200, 800), "coral").save(output, format="PNG")
+        upload = SimpleUploadedFile("plain.png", output.getvalue(), content_type="image/png")
+
+        self.assertIsNone(read_captured_at(upload))
+
     @patch("core.image_processing.Image.open")
     def test_image_with_too_many_pixels_is_rejected(self, image_open):
         image_open.return_value = Mock(
@@ -125,6 +163,17 @@ class MomentImageUploadTests(TestCase):
         output = BytesIO()
         Image.new("RGB", (2400, 1200), "coral").save(output, format="JPEG")
         return SimpleUploadedFile("moment.jpg", output.getvalue(), content_type="image/jpeg")
+
+    def make_exif_jpeg(self, dt_string="2026:08:20 15:30:00"):
+        output = BytesIO()
+        exif = Image.Exif()
+        exif[36867] = dt_string
+        Image.new("RGB", (1200, 800), "coral").save(
+            output,
+            format="JPEG",
+            exif=exif,
+        )
+        return SimpleUploadedFile("exif.jpg", output.getvalue(), content_type="image/jpeg")
 
     def test_valid_image_post_creates_resized_photo(self):
         response = self.client.post(
@@ -187,6 +236,86 @@ class MomentImageUploadTests(TestCase):
         task.refresh_from_db()
         self.assertFalse(task.is_completed)
         self.assertFalse(MomentLog.objects.filter(task=task).exists())
+
+    def test_photo_saves_exif_candidate_as_captured_at_source(self):
+        response = self.client.post(
+            reverse("room_moments_new", args=[self.room.pk]),
+            {
+                "body": "EXIFの写真",
+                "images": self.make_exif_jpeg(),
+                "captured_at": ["2026-08-20T15:30"],
+                "captured_at_source": ["exif"],
+            },
+        )
+
+        self.assertRedirects(response, reverse("room_album", args=[self.room.pk]))
+        photo = Photo.objects.get(moment_log__room=self.room)
+        self.assertEqual(photo.captured_at_source, Photo.CapturedAtSource.EXIF)
+        self.assertIsNotNone(photo.captured_at)
+        self.assertEqual(photo.captured_at.year, 2026)
+
+    def test_photo_saves_manual_captured_at_when_user_provides_value(self):
+        response = self.client.post(
+            reverse("room_moments_new", args=[self.room.pk]),
+            {
+                "body": "手入力の写真",
+                "images": self.make_jpeg(),
+                "captured_at": ["2026-08-21T09:15"],
+                "captured_at_source": ["manual"],
+            },
+        )
+
+        self.assertRedirects(response, reverse("room_album", args=[self.room.pk]))
+        photo = Photo.objects.get(moment_log__room=self.room)
+        self.assertEqual(photo.captured_at_source, Photo.CapturedAtSource.MANUAL)
+        local_captured = timezone.localtime(photo.captured_at)
+        self.assertEqual(local_captured.hour, 9)
+        self.assertEqual(local_captured.minute, 15)
+
+    def test_photo_saves_unknown_when_exif_candidate_is_removed(self):
+        response = self.client.post(
+            reverse("room_moments_new", args=[self.room.pk]),
+            {
+                "body": "EXIF候補を削除した写真",
+                "images": self.make_exif_jpeg(),
+                "captured_at": [""],
+                "captured_at_source": ["unknown"],
+            },
+        )
+
+        self.assertRedirects(response, reverse("room_album", args=[self.room.pk]))
+        photo = Photo.objects.get(moment_log__room=self.room)
+        self.assertEqual(photo.captured_at_source, Photo.CapturedAtSource.UNKNOWN)
+        self.assertIsNone(photo.captured_at)
+
+    def test_invalid_captured_at_is_shown_as_form_error(self):
+        response = self.client.post(
+            reverse("room_moments_new", args=[self.room.pk]),
+            {
+                "body": "不正日時の写真",
+                "images": self.make_jpeg(),
+                "captured_at": ["not-a-date"],
+                "captured_at_source": ["manual"],
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "撮影日時を確認してください。")
+        self.assertFalse(Photo.objects.filter(moment_log__room=self.room).exists())
+
+    def test_photo_saves_unknown_when_no_datetime_is_given(self):
+        response = self.client.post(
+            reverse("room_moments_new", args=[self.room.pk]),
+            {
+                "body": "日時不明の写真",
+                "images": self.make_jpeg(),
+            },
+        )
+
+        self.assertRedirects(response, reverse("room_album", args=[self.room.pk]))
+        photo = Photo.objects.get(moment_log__room=self.room)
+        self.assertEqual(photo.captured_at_source, Photo.CapturedAtSource.UNKNOWN)
+        self.assertIsNone(photo.captured_at)
 
     @override_settings(ALLOW_PHOTO_UPLOADS=False)
     def test_photo_upload_is_rejected_when_storage_is_disabled(self):
@@ -387,6 +516,35 @@ class CategoryViewTests(TestCase):
 
         self.assertEqual(response.status_code, 403)
         self.assertFalse(Category.objects.filter(room=ended_room).exists())
+
+    def test_quick_create_adds_category_to_owned_room(self):
+        response = self.client.post(
+            reverse("category_quick_create", args=[self.owned_room.pk]),
+            {"name": "即席カテゴリ", "color": ""},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        category = Category.objects.get(room=self.owned_room, name="即席カテゴリ")
+        data = response.json()
+        self.assertEqual(data["id"], category.pk)
+        self.assertEqual(data["label"], "即席カテゴリ")
+
+    def test_quick_create_rejects_duplicate_category_name(self):
+        response = self.client.post(
+            reverse("category_quick_create", args=[self.owned_room.pk]),
+            {"name": "花火", "color": ""},
+        )
+
+        self.assertEqual(response.status_code, 400)
+
+    def test_quick_create_rejects_another_users_room(self):
+        response = self.client.post(
+            reverse("category_quick_create", args=[self.other_room.pk]),
+            {"name": "他人のRoomに追加", "color": ""},
+        )
+
+        self.assertEqual(response.status_code, 404)
+        self.assertFalse(Category.objects.filter(name="他人のRoomに追加").exists())
 
 
 class MomentLogFormTests(TestCase):
@@ -822,6 +980,12 @@ class AuthenticationViewTests(TestCase):
         self.assertContains(response, "csrfmiddlewaretoken")
         self.assertNotContains(response, "demo / demo")
 
+    def test_login_page_shows_the_shunkan_logo(self):
+        response = self.client.get(reverse("login"))
+
+        self.assertContains(response, "shunkan-logo.png")
+        self.assertContains(response, 'alt="旬間 (SHUNKAN)"')
+
     def test_signup_creates_a_user_and_logs_in(self):
         response = self.client.post(
             reverse("signup"),
@@ -1189,6 +1353,39 @@ class TaskOwnerAccessTests(TestCase):
         self.assertEqual(response.status_code, 404)
         self.other_task.refresh_from_db()
         self.assertEqual(self.other_task.title, "他人のタスク")
+
+    def test_quick_create_adds_task_to_owned_room(self):
+        response = self.client.post(
+            reverse("task_quick_create", args=[self.owned_room.pk]),
+            {"title": "即席タスク", "due_date": ""},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        task = Task.objects.get(room=self.owned_room, title="即席タスク")
+        data = response.json()
+        self.assertEqual(data["id"], task.pk)
+        self.assertIn("即席タスク", data["label"])
+
+    def test_quick_create_rejects_due_date_outside_room_period(self):
+        response = self.client.post(
+            reverse("task_quick_create", args=[self.owned_room.pk]),
+            {
+                "title": "期間外タスク",
+                "due_date": (self.owned_room.ends_at + timedelta(days=1)).date().isoformat(),
+            },
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertFalse(Task.objects.filter(room=self.owned_room, title="期間外タスク").exists())
+
+    def test_quick_create_rejects_another_users_room(self):
+        response = self.client.post(
+            reverse("task_quick_create", args=[self.other_room.pk]),
+            {"title": "他人のRoomに追加", "due_date": ""},
+        )
+
+        self.assertEqual(response.status_code, 404)
+        self.assertFalse(Task.objects.filter(title="他人のRoomに追加").exists())
 
     def test_owner_can_delete_own_task(self):
         response = self.client.post(
@@ -1952,6 +2149,31 @@ class TaskModelTests(TestCase):
 
         with self.assertRaises(ValidationError):
             task.full_clean()
+
+    def test_form_validates_due_date_inside_the_room_period(self):
+        form = TaskForm(
+            {
+                "title": "期間内タスク",
+                "due_date": (timezone.now() + timedelta(days=2)).date(),
+                "category": "",
+            },
+            room=self.room,
+        )
+
+        self.assertTrue(form.is_valid(), form.errors.as_json())
+
+    def test_form_rejects_due_date_outside_the_room_period(self):
+        form = TaskForm(
+            {
+                "title": "期間外タスク",
+                "due_date": (self.room.ends_at + timedelta(days=1)).date(),
+                "category": "",
+            },
+            room=self.room,
+        )
+
+        self.assertFalse(form.is_valid())
+        self.assertIn("期限はRoom期間内で設定してください。", str(form.errors))
 
 
 class MomentLogModelTests(TestCase):

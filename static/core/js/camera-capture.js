@@ -59,6 +59,8 @@
     cards[index].querySelector("[data-photo-remove]").addEventListener("click", () => {
       input.value = "";
       cards[index].querySelector('[name="captions"]').value = "";
+      cards[index].querySelector('[name="captured_at"]').value = "";
+      cards[index].querySelector('[name="captured_at_source"]').value = "unknown";
       setPreview(input);
     });
   });

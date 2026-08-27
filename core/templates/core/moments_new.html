@@ -33,7 +33,9 @@
             <button type="button" class="photo-remove-button" data-photo-remove aria-label="写真{{ i }}を削除">×</button>
           </div>
           <input class="visually-hidden" type="file" name="images" accept="image/jpeg,image/png,image/webp,image/gif" data-photo-input {% if forloop.first %}id="primary-photo-input" capture="environment"{% endif %}>
+          <input type="hidden" name="captured_at_source" data-captured-at-source value="unknown">
           <label class="field"><span class="field__label">写真へのひとこと（任意）</span><input class="field__input" name="captions" maxlength="140" placeholder="この写真の思い出"></label>
+          <label class="field"><span class="field__label">撮影日時（任意）</span><input class="field__input" name="captured_at" type="datetime-local" data-captured-at><small class="field__help">空欄の場合はEXIFから自動読み取り、なければ不明として保存します。</small></label>
         </article>
       {% endfor %}
       </div>
@@ -53,8 +55,34 @@
         <label class="field__label" for="{{ form.task.id_for_label }}">関連Task</label>{{ form.task }}
         {% if form.task.errors %}<span class="form-error">{{ form.task.errors|striptags }}</span>{% endif %}
         <label class="task-completion-option" data-task-completion hidden><input type="checkbox" name="complete_task" value="1" {% if request.POST.complete_task %}checked{% endif %}><span><strong>このTaskを完了する</strong><small>写真を最初の思い出として残します。</small></span></label>
+        <details class="quick-create" data-quick-create="task">
+          <summary></summary>＋ Taskを追加</summary>
+          <div class="quick-create__body">
+            <form class="quick-create__form" data-quick-create-form action="{% url 'task_quick_create' room.pk %}" method="post">
+              {% csrf_token %}
+              <div class="field"><label class="field__label" for="quick-task-title">Task名</label><input class="field__input" id="quick-task-title" name="title" maxlength="100" placeholder="例：花火を見る"></div>
+              <div class="field"><label class="field__label" for="quick-task-due">期限（任意）</label><input class="field__input" id="quick-task-due" name="due_date" type="date"></div>
+              <p class="form-error" data-quick-create-error role="alert" hidden></p>
+              <button class="small-button" type="submit">追加する</button>
+            </form>
+          </div>
+        </details>
       </div>
-      <div class="field"><label class="field__label" for="{{ form.category.id_for_label }}">カテゴリ</label>{{ form.category }}{% if form.category.errors %}<span class="form-error">{{ form.category.errors|striptags }}</span>{% endif %}</div>
+      <div class="field">
+        <label class="field__label" for="{{ form.category.id_for_label }}">カテゴリ</label>{{ form.category }}
+        {% if form.category.errors %}<span class="form-error">{{ form.category.errors|striptags }}</span>{% endif %}
+        <details class="quick-create" data-quick-create="category">
+          <summary>＋ </summary>カテゴリを追加</summary>
+          <div class="quick-create__body">
+            <form class="quick-create__form" data-quick-create-form action="{% url 'category_quick_create' room.pk %}" method="post">
+              {% csrf_token %}
+              <div class="field"><label class="field__label" for="quick-category-name">カテゴリ名</label><input class="field__input" id="quick-category-name" name="name" maxlength="30" placeholder="例：花火"></div>
+              <p class="form-error" data-quick-create-error role="alert" hidden></p>
+              <button class="small-button" type="submit">追加する</button>
+            </form>
+          </div>
+        </details>
+      </div>
     </div>
   </details>
   {% endif %}
@@ -76,4 +104,4 @@
 {% endif %}
 {% endblock %}
 {% block navigation %}{% include "core/includes/bottom_nav.html" %}{% endblock %}
-{% block scripts %}{% if photo_uploads_enabled %}<script src="{% static 'core/js/camera-capture.js' %}" defer></script>{% endif %}{% endblock %}
+{% block scripts %}<script src="https://cdn.jsdelivr.net/npm/exif-js@2.3.0/exif.js" defer></script>{% if photo_uploads_enabled %}<script src="{% static 'core/js/exif-reader.js' %}" defer></script><script src="{% static 'core/js/camera-capture.js' %}" defer></script>{% endif %}{% endblock %}
