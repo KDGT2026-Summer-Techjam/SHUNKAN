@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from django.conf import settings
 from django.contrib.auth import login
 from django.contrib.auth.decorators import login_required
@@ -196,6 +198,8 @@ def room_moments_new(request, room_id):
         form = MomentLogForm(request.POST, room=room, now=now)
         images = request.FILES.getlist("images")
         captions = request.POST.getlist("captions")
+        captured_ats = request.POST.getlist("captured_at")
+        exif_candidates = request.POST.getlist("exif_captured_at")
         processed_images = []
         complete_task = request.POST.get("complete_task") == "1"
         if images and not settings.ALLOW_PHOTO_UPLOADS:
@@ -227,10 +231,31 @@ def room_moments_new(request, room_id):
                     moment.task.completed_at = completed_at
                     moment.task.save(update_fields=["is_completed", "completed_at", "updated_at"])
                 for index, image in enumerate(processed_images):
+                    captured_at = None
+                    source = Photo.CapturedAtSource.UNKNOWN
+                    raw_captured_at = (
+                        captured_ats[index] if index < len(captured_ats) else ""
+                    ).strip()
+                    if raw_captured_at:
+                        parsed = datetime.fromisoformat(raw_captured_at)
+                        captured_at = timezone.make_aware(
+                            parsed,
+                            timezone.get_current_timezone(),
+                        )
+                        source = Photo.CapturedAtSource.MANUAL
+                    elif index < len(exif_candidates) and exif_candidates[index]:
+                        parsed = datetime.fromisoformat(exif_candidates[index])
+                        captured_at = timezone.make_aware(
+                            parsed,
+                            timezone.get_current_timezone(),
+                        )
+                        source = Photo.CapturedAtSource.EXIF
                     Photo.objects.create(
                         moment_log=moment,
                         image=image,
                         caption=captions[index] if index < len(captions) else "",
+                        captured_at=captured_at,
+                        captured_at_source=source,
                         sort_order=index,
                     )
             return redirect("room_album", room_id=room.pk)
