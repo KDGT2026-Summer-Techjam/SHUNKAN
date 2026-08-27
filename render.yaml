@@ -4,9 +4,10 @@ services:
     runtime: python
     region: singapore
     plan: free
-    buildCommand: pip install -r requirements.txt && python manage.py collectstatic --noinput && python manage.py migrate --noinput
+    buildCommand: pip install -r requirements.txt && python manage.py collectstatic --noinput
+    preDeployCommand: python manage.py migrate --noinput
     startCommand: gunicorn shunkan_project.wsgi:application --bind 0.0.0.0:$PORT --workers 2 --timeout 60
-    healthCheckPath: /accounts/login/
+    healthCheckPath: /healthz/
     autoDeployTrigger: commit
     envVars:
       - key: DATABASE_URL

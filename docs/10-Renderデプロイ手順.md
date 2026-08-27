@@ -18,8 +18,8 @@
 1. この変更をGitHubのデプロイ対象ブランチへpushする。
 2. RenderでGitHubを接続し、**New +** → **Blueprint** を選ぶ。
 3. `SHUNKAN`リポジトリとデプロイ対象ブランチを選び、`render.yaml`を読み込む。
-4. 内容を確認してApplyする。初回ビルドでは依存関係のインストール、静的ファイル収集、migrationを行う。
-5. デプロイ完了後に表示される`https://<service-name>.onrender.com/accounts/login/`を開き、ログイン画面が表示されることを確認する。
+4. 内容を確認してApplyする。ビルドでは依存関係のインストールと静的ファイル収集を行い、デプロイ前コマンド（`preDeployCommand`）でmigrationを行う。
+5. デプロイ完了後、`https://<service-name>.onrender.com/healthz/`が`{"status": "ok"}`を返すことと、`https://<service-name>.onrender.com/accounts/login/`にログイン画面が表示されることを確認する。
 
 ## 環境変数
 
@@ -57,8 +57,8 @@ DJANGO_CSRF_TRUSTED_ORIGINS=https://app.example.com
 
 ## 公開後の確認
 
-1. `/accounts/login/`が表示される。
-2. 新規登録、ログイン、ログアウトができる。
+1. `/healthz/`がHTTP 200で`{"status": "ok"}`だけを返す。
+2. `/accounts/login/`が表示され、新規登録、ログイン、ログアウトができる。
 3. Roomの作成・一覧・詳細表示ができる。
 4. ブラウザの開発者ツールでCSS・画像の`/static/`リクエストが404になっていない。
 5. Renderのログに`DisallowedHost`、migration失敗、DB接続失敗がない。
