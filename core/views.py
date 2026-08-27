@@ -122,12 +122,19 @@ def room_display_context(room, *, active_nav):
     else:
         room_status = "開催中"
     active = room_is_active(room, now=now)
+    reflection_permission = log_post_permission(
+        room,
+        MomentLog.EntryType.REFLECTION,
+        now=now,
+    )
     return {
         "room": room,
         "now": now,
         "room_status": room_status,
         "room_is_active": active,
         "room_is_ended": room.ends_at <= now,
+        "can_post_reflection": reflection_permission.allowed,
+        "reflection_permission": reflection_permission,
         "task_count": task_count,
         "completed_count": completed_count,
         "progress_percent": (
@@ -241,6 +248,16 @@ def room_moments_new(request, room_id):
         processed_images = []
         parsed_captured_data = []
         complete_task = request.POST.get("complete_task") == "1"
+        if requested_entry_type == MomentLog.EntryType.REFLECTION:
+            if images:
+                form.add_error(None, "振り返りログには写真を追加できません。")
+            if request.POST.get("task") or request.POST.get("category"):
+                form.add_error(
+                    None,
+                    "振り返りログにはTask・カテゴリを関連付けできません。",
+                )
+            if complete_task:
+                form.add_error(None, "振り返りログからTaskを完了できません。")
         if images and not settings.ALLOW_PHOTO_UPLOADS:
             form.add_error(
                 None,

@@ -24,7 +24,7 @@ from .image_processing import (
     process_uploaded_image,
     read_captured_at,
 )
-from .forms import MomentLogForm, TaskForm
+from .forms import MomentLogForm, RoomForm
 from .models import Room, Category, Task, MomentLog, Photo
 from .room_state import log_post_permission
 
@@ -574,6 +574,50 @@ class MomentLogFormTests(TestCase):
         self.assertIn("まで", label)
 
 
+class RoomReflectionDeadlineFormTests(TestCase):
+    def test_room_form_sets_reflection_deadline_to_seven_days_after_end(self):
+        starts_at = timezone.now() + timedelta(days=1)
+        ends_at = starts_at + timedelta(days=2)
+        form = RoomForm(
+            {
+                "name": "振り返り期限確認Room",
+                "starts_at": starts_at,
+                "ends_at": ends_at,
+            }
+        )
+
+        self.assertTrue(form.is_valid(), form.errors.as_json())
+        room = form.save(commit=False)
+        self.assertEqual(room.reflection_deadline_at, ends_at + timedelta(days=7))
+
+    def test_room_form_recalculates_deadline_when_end_is_updated(self):
+        user = get_user_model().objects.create_user(username="room-form-user")
+        starts_at = timezone.now() - timedelta(hours=1)
+        room = Room.objects.create(
+            owner=user,
+            name="更新前Room",
+            starts_at=starts_at,
+            ends_at=starts_at + timedelta(days=1),
+            reflection_deadline_at=starts_at + timedelta(days=8),
+        )
+        new_ends_at = starts_at + timedelta(days=2)
+        form = RoomForm(
+            {
+                "name": room.name,
+                "starts_at": starts_at,
+                "ends_at": new_ends_at,
+            },
+            instance=room,
+        )
+
+        self.assertTrue(form.is_valid(), form.errors.as_json())
+        updated_room = form.save()
+        self.assertEqual(
+            updated_room.reflection_deadline_at,
+            new_ends_at + timedelta(days=7),
+        )
+
+
 class LogPostPermissionTests(TestCase):
     def setUp(self):
         self.user = get_user_model().objects.create_user(
@@ -732,6 +776,10 @@ class ReflectionPostViewTests(TestCase):
         self.assertRedirects(response, reverse("room_album", args=[room.pk]))
         log = MomentLog.objects.get(room=room)
         self.assertEqual(log.entry_type, MomentLog.EntryType.REFLECTION)
+        self.assertLess(abs((log.occurred_at - timezone.now()).total_seconds()), 5)
+        self.assertIsNone(log.task)
+        self.assertIsNone(log.category)
+        self.assertFalse(log.photos.exists())
 
     def test_moment_is_rejected_inside_the_reflection_period(self):
         room = self.make_room(
@@ -805,6 +853,92 @@ class ReflectionPostViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertIn("entry_type", response.context["form"].errors)
         self.assertFalse(MomentLog.objects.filter(room=room).exists())
+
+    def test_reflection_page_shows_body_only_and_reflection_navigation(self):
+        room = self.make_room(
+            starts_at=self.now - timedelta(days=3),
+            ends_at=self.now - timedelta(days=1),
+            reflection_deadline_at=self.now + timedelta(days=6),
+        )
+
+        response = self.client.get(reverse("room_moments_new", args=[room.pk]))
+        content = response.content.decode()
+
+        self.assertContains(response, "振り返りを残す")
+        self.assertContains(response, 'name="entry_type" value="reflection"')
+        self.assertContains(response, "振り返りを保存する")
+        self.assertNotContains(response, 'name="images"')
+        self.assertNotContains(response, "関連Task")
+        self.assertNotContains(response, "カテゴリ")
+        self.assertIn("振り返り", content)
+
+    def test_room_detail_shows_reflection_cta_and_deadline(self):
+        room = self.make_room(
+            starts_at=self.now - timedelta(days=3),
+            ends_at=self.now - timedelta(days=1),
+            reflection_deadline_at=self.now + timedelta(days=6),
+        )
+
+        response = self.client.get(reverse("room_detail", args=[room.pk]))
+
+        self.assertContains(response, "振り返りを残す")
+        self.assertContains(response, "まで投稿できます")
+        self.assertNotContains(response, "期間・名前を編集")
+
+    def test_forged_reflection_relations_and_completion_are_rejected(self):
+        room = self.make_room(
+            starts_at=self.now - timedelta(days=3),
+            ends_at=self.now - timedelta(days=1),
+            reflection_deadline_at=self.now + timedelta(days=6),
+        )
+        category = Category.objects.create(room=room, name="不正カテゴリ")
+        task = Task.objects.create(room=room, title="不正Task")
+
+        response = self.client.post(
+            reverse("room_moments_new", args=[room.pk]),
+            {
+                "body": "関連付けを偽装",
+                "entry_type": MomentLog.EntryType.REFLECTION,
+                "task": task.pk,
+                "category": category.pk,
+                "complete_task": "1",
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Task・カテゴリを関連付けできません")
+        self.assertContains(response, "Taskを完了できません")
+        self.assertFalse(MomentLog.objects.filter(room=room).exists())
+        task.refresh_from_db()
+        self.assertFalse(task.is_completed)
+
+    def test_forged_reflection_photo_is_rejected(self):
+        room = self.make_room(
+            starts_at=self.now - timedelta(days=3),
+            ends_at=self.now - timedelta(days=1),
+            reflection_deadline_at=self.now + timedelta(days=6),
+        )
+        output = BytesIO()
+        Image.new("RGB", (20, 20), "navy").save(output, format="JPEG")
+        image = SimpleUploadedFile(
+            "reflection.jpg",
+            output.getvalue(),
+            content_type="image/jpeg",
+        )
+
+        response = self.client.post(
+            reverse("room_moments_new", args=[room.pk]),
+            {
+                "body": "写真を偽装",
+                "entry_type": MomentLog.EntryType.REFLECTION,
+                "images": image,
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "振り返りログには写真を追加できません")
+        self.assertFalse(MomentLog.objects.filter(room=room).exists())
+        self.assertFalse(Photo.objects.exists())
 
     def test_page_returns_the_reason_when_posting_is_closed(self):
         room = self.make_room(
