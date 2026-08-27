@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 BASE_DIR = Path(__file__).resolve().parent.parent
 load_dotenv(BASE_DIR / ".env")
 
-DEBUG = os.environ.get("DJANGO_DEBUG", "true").lower() in {"1", "true", "yes", "on"}
+DEBUG = os.environ.get("DJANGO_DEBUG", "false").lower() in {"1", "true", "yes", "on"}
 secret_key = os.environ.get("DJANGO_SECRET_KEY")
 if not secret_key:
     if DEBUG:
@@ -102,6 +102,10 @@ STATICFILES_DIRS = [BASE_DIR / "static"]
 STATIC_ROOT = BASE_DIR / "staticfiles"
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
+# Renderの一時ファイル領域へ誤保存しないよう、本番では明示的な許可を必須にする。
+ALLOW_PHOTO_UPLOADS = os.environ.get(
+    "ALLOW_PHOTO_UPLOADS", "true" if DEBUG else "false"
+).lower() in {"1", "true", "yes", "on"}
 STORAGES = {
     "default": {
         "BACKEND": "django.core.files.storage.FileSystemStorage",

@@ -187,6 +187,18 @@ class MomentImageUploadTests(TestCase):
         self.assertFalse(task.is_completed)
         self.assertFalse(MomentLog.objects.filter(task=task).exists())
 
+    @override_settings(ALLOW_PHOTO_UPLOADS=False)
+    def test_photo_upload_is_rejected_when_storage_is_disabled(self):
+        response = self.client.post(
+            reverse("room_moments_new", args=[self.room.pk]),
+            {"body": "保存しない写真", "images": self.make_jpeg()},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "写真アップロードを一時停止しています")
+        self.assertFalse(MomentLog.objects.filter(room=self.room).exists())
+        self.assertFalse(Photo.objects.exists())
+
     def test_invalid_image_post_does_not_create_moment_or_photo(self):
         invalid = SimpleUploadedFile("broken.gif", b"not-a-gif", content_type="image/gif")
 
@@ -673,6 +685,7 @@ class AuthenticationViewTests(TestCase):
         self.assertContains(response, "ログイン")
         self.assertContains(response, 'href="/accounts/signup/"')
         self.assertContains(response, "csrfmiddlewaretoken")
+        self.assertNotContains(response, "demo / demo")
 
     def test_signup_creates_a_user_and_logs_in(self):
         response = self.client.post(

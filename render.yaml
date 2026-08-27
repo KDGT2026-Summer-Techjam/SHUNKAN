@@ -17,6 +17,9 @@ services:
         value: "false"
       - key: DJANGO_SECRET_KEY
         generateValue: true
+      # 外部ストレージ導入までは、消失する写真を本番で受け付けない。
+      - key: ALLOW_PHOTO_UPLOADS
+        value: "false"
 
 databases:
   - name: shunkan-db

@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.contrib.auth import login
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import UserCreationForm
@@ -197,6 +198,11 @@ def room_moments_new(request, room_id):
         captions = request.POST.getlist("captions")
         processed_images = []
         complete_task = request.POST.get("complete_task") == "1"
+        if images and not settings.ALLOW_PHOTO_UPLOADS:
+            form.add_error(
+                None,
+                "現在、写真アップロードを一時停止しています。写真を外して保存してください。",
+            )
         if complete_task and not request.POST.get("task"):
             form.add_error(None, "完了するタスクを選んでください。")
         if complete_task and not images:
@@ -238,6 +244,7 @@ def room_moments_new(request, room_id):
             "reflection_permission": reflection_permission,
             "can_post_moment": moment_permission.allowed,
             "can_post_reflection": reflection_permission.allowed,
+            "photo_uploads_enabled": settings.ALLOW_PHOTO_UPLOADS,
         }
     )
     return render(request, "core/moments_new.html", context)
