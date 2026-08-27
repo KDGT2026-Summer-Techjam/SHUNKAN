@@ -213,7 +213,18 @@ button { color: inherit; }
 .card-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 14px; }
 .card-actions form { margin: 0; }
 .small-button { min-height: 42px; display: inline-flex; align-items: center; justify-content: center; padding: 0 14px; border: 1px solid var(--line); border-radius: 12px; color: var(--navy); background: var(--surface); cursor: pointer; font-size: 12px; font-weight: 800; }
+.small-button--complete { color: #fff; border-color: var(--accent); background: var(--accent); }
+.small-button--complete:disabled { cursor: default; opacity: .72; }
 .small-button--danger { color: var(--danger); border-color: #e4b8b8; background: #fff7f6; }
+.task-completion-error { flex-basis: 100%; margin: 0; color: var(--danger); font-size: 12px; line-height: 1.5; }
+.achievement-overlay { position: fixed; inset: 0; z-index: 90; display: grid; place-items: center; padding: 24px; opacity: 0; pointer-events: none; color: #fff; background: rgba(0,0,0,.75); transition: opacity 500ms cubic-bezier(0,0,.2,1); }
+.achievement-overlay.is-active { opacity: 1; pointer-events: auto; }
+.achievement-canvas { position: fixed; inset: 0; z-index: 91; width: 100%; height: 100%; pointer-events: none; }
+.achievement-message { position: relative; z-index: 92; max-width: min(100%, 360px); padding: 42px 20px; color: #fff; font-family: "Noto Serif JP", "Yu Mincho", serif; font-size: clamp(24px, 7vw, 32px); font-weight: 700; line-height: 1.45; text-align: center; text-shadow: 0 2px 3px rgba(0,0,0,.56), 0 6px 24px rgba(0,0,0,.56); transform: translateY(8px) scale(.94); opacity: 0; transition: opacity 350ms cubic-bezier(0,0,.2,1), transform 350ms cubic-bezier(0,0,.2,1); }
+.achievement-message::before { position: absolute; z-index: -1; top: 50%; left: 50%; width: 340px; height: 150px; content: ""; background: radial-gradient(ellipse at center, rgba(0,0,0,.58) 0%, rgba(0,0,0,.32) 45%, rgba(0,0,0,0) 72%); transform: translate(-50%, -50%); }
+.achievement-message.is-active { transform: translateY(0) scale(1); opacity: 1; }
+.achievement-skip-hint { position: fixed; z-index: 92; right: 0; bottom: calc(110px + env(safe-area-inset-bottom)); left: 0; margin: 0; color: rgba(255,255,255,.78); font-size: 12px; text-align: center; opacity: 0; transition: opacity 350ms ease; }
+.achievement-skip-hint.is-active { opacity: 1; }
 .management-section { padding: 18px; border: 1px solid var(--line); border-radius: 18px; background: var(--surface); }
 .management-section .section-heading { margin-bottom: 8px; }
 .list-management-links { display: flex; justify-content: space-between; gap: 16px; margin-top: 14px; }
