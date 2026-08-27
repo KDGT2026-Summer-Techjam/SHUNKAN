@@ -122,6 +122,7 @@ class MomentLogForm(forms.ModelForm):
     def __init__(self, *args, room, **kwargs):
         super().__init__(*args, **kwargs)
         self.room = room
+        self.instance.room = room
         category_field = cast(forms.ModelChoiceField, self.fields["category"])
         category_field.queryset = room.categories.all()
         self.fields["task"] = TaskChoiceField(

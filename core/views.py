@@ -83,10 +83,22 @@ def rooms(request):
         else:
             room.ui_status = "開催中"
 
+    active_rooms = [room for room in user_rooms if room.ui_status == "開催中"]
+    upcoming_rooms = [room for room in user_rooms if room.ui_status == "開催前"]
+    ended_rooms = [room for room in user_rooms if room.ui_status == "終了済み"]
+
     return render(
         request,
         "core/rooms.html",
-        {"form": form, "rooms": user_rooms, "now": now, "active_nav": "rooms"},
+        {
+            "form": form,
+            "rooms": user_rooms,
+            "active_rooms": active_rooms,
+            "upcoming_rooms": upcoming_rooms,
+            "ended_rooms": ended_rooms,
+            "now": now,
+            "active_nav": "rooms",
+        },
     )
 
 
@@ -169,6 +181,11 @@ def room_moments_new(request, room_id):
         images = request.FILES.getlist("images")
         captions = request.POST.getlist("captions")
         processed_images = []
+        complete_task = request.POST.get("complete_task") == "1"
+        if complete_task and not request.POST.get("task"):
+            form.add_error(None, "完了するタスクを選んでください。")
+        if complete_task and not images:
+            form.add_error(None, "タスクを写真と一緒に完了するには、写真を1枚以上追加してください。")
         if len(images) > 3:
             form.add_error(None, "写真は3枚までです。")
         else:
@@ -181,8 +198,13 @@ def room_moments_new(request, room_id):
             with transaction.atomic():
                 moment = form.save(commit=False)
                 moment.room = room
-                moment.occurred_at = timezone.now()
+                completed_at = timezone.now()
+                moment.occurred_at = completed_at
                 moment.save()
+                if complete_task and moment.task is not None:
+                    moment.task.is_completed = True
+                    moment.task.completed_at = completed_at
+                    moment.task.save(update_fields=["is_completed", "completed_at", "updated_at"])
                 for index, image in enumerate(processed_images):
                     Photo.objects.create(
                         moment_log=moment,

@@ -142,6 +142,49 @@ class MomentImageUploadTests(TestCase):
         with Image.open(photo.image) as image:
             self.assertLessEqual(max(image.size), MAX_IMAGE_DIMENSION)
 
+    def test_photo_can_complete_the_selected_task(self):
+        task = Task.objects.create(room=self.room, title="写真で完了するタスク")
+
+        response = self.client.post(
+            reverse("room_moments_new", args=[self.room.pk]),
+            {
+                "body": "写真と一緒に完了",
+                "task": task.pk,
+                "complete_task": "1",
+                "images": self.make_jpeg(),
+            },
+        )
+
+        self.assertEqual(
+            response.status_code,
+            302,
+            response.context["form"].errors.as_json() if response.context else "",
+        )
+        self.assertRedirects(response, reverse("room_album", args=[self.room.pk]))
+        task.refresh_from_db()
+        self.assertTrue(task.is_completed)
+        self.assertIsNotNone(task.completed_at)
+        moment = MomentLog.objects.get(task=task)
+        self.assertEqual(moment.photos.count(), 1)
+
+    def test_task_completion_requires_a_photo(self):
+        task = Task.objects.create(room=self.room, title="写真が必要なタスク")
+
+        response = self.client.post(
+            reverse("room_moments_new", args=[self.room.pk]),
+            {
+                "body": "写真なしでは完了しない",
+                "task": task.pk,
+                "complete_task": "1",
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "写真を1枚以上追加してください。")
+        task.refresh_from_db()
+        self.assertFalse(task.is_completed)
+        self.assertFalse(MomentLog.objects.filter(task=task).exists())
+
     def test_invalid_image_post_does_not_create_moment_or_photo(self):
         invalid = SimpleUploadedFile("broken.gif", b"not-a-gif", content_type="image/gif")
 
@@ -430,7 +473,11 @@ class AuthenticationViewTests(TestCase):
         )
 
         self.assertRedirects(response, reverse("rooms"))
-        self.assertContains(response, '<h1 id="rooms-title">Room</h1>', html=True)
+        self.assertContains(
+            response,
+            '<h1 id="rooms-title">Roomを切り替える</h1>',
+            html=True,
+        )
 
     def test_anonymous_user_is_redirected_to_login(self):
         response = self.client.get(reverse("rooms"))
@@ -484,6 +531,47 @@ class RoomViewTests(TestCase):
 
         self.assertContains(response, "自分のRoom")
         self.assertNotContains(response, "他人のRoom")
+
+    def test_room_switcher_groups_rooms_by_status(self):
+        now = timezone.now()
+        Room.objects.create(
+            owner=self.owner,
+            name="開催中のRoom",
+            starts_at=now - timedelta(days=1),
+            ends_at=now + timedelta(days=1),
+        )
+        Room.objects.create(
+            owner=self.owner,
+            name="これからのRoom",
+            starts_at=now + timedelta(days=2),
+            ends_at=now + timedelta(days=3),
+        )
+        Room.objects.create(
+            owner=self.owner,
+            name="終了したRoom",
+            starts_at=now - timedelta(days=3),
+            ends_at=now - timedelta(days=2),
+        )
+
+        response = self.client.get(reverse("rooms"))
+
+        self.assertContains(response, "いま開催中")
+        self.assertContains(response, "これから始まる")
+        self.assertContains(response, "終了したRoom")
+        self.assertContains(response, "新しいRoomを作る")
+
+    def test_room_switcher_prompts_before_room_specific_navigation(self):
+        response = self.client.get(reverse("rooms"))
+
+        self.assertContains(response, 'data-room-required="タスク"')
+        self.assertContains(response, 'data-room-required="撮影"')
+        self.assertContains(response, 'data-room-required="アルバム"')
+        self.assertContains(response, "先にRoomを選びましょう")
+
+    def test_room_navigation_returns_to_the_room_switcher(self):
+        response = self.client.get(reverse("room_detail", args=[self.owner_room.pk]))
+
+        self.assertContains(response, f'href="{reverse("rooms")}"')
 
     def test_room_creation_assigns_the_current_user_as_owner(self):
         response = self.client.post(
