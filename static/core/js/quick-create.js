@@ -7,7 +7,7 @@
   document.querySelectorAll("[data-quick-create]").forEach((details) => {
     const kind = details.dataset.quickCreate;
     const select = selectByKind[kind];
-    const form = details.querySelector("[data-quick-create-form]");
+    const form = document.getElementById(details.dataset.quickCreateForm);
     if (!select || !form) return;
 
     const errorBox = details.querySelector("[data-quick-create-error]");

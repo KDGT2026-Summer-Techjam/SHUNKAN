@@ -1307,7 +1307,7 @@ class RoomViewTests(TestCase):
         self.owner_room.refresh_from_db()
         self.assertEqual(self.owner_room.name, "自分のRoom")
 
-    def test_cusers_room(self):
+    def test_cannot_update_another_users_room(self):
         response = self.client.post(
             reverse("room_update", args=[self.other_room.pk]),
             {
@@ -1415,7 +1415,10 @@ class TaskOwnerAccessTests(TestCase):
             reverse("task_quick_create", args=[self.owned_room.pk]),
             {
                 "title": "期間外タスク",
-                "due_date": (self.owned_room.ends_at + timedelta(days=1)).date().isoformat(),
+                "due_date": (
+                    timezone.localtime(self.owned_room.ends_at).date()
+                    + timedelta(days=1)
+                ).isoformat(),
             },
         )
 
@@ -1782,7 +1785,9 @@ class RelationalIntegrityRegressionTests(TestCase):
             photo.full_clean()
 
     def test_room_form_rejects_period_excluding_existing_children(self):
-        Task.objects.filter(pk=self.task.pk).update(due_date=self.room.ends_at.date())
+        Task.objects.filter(pk=self.task.pk).update(
+            due_date=timezone.localtime(self.room.ends_at).date()
+        )
         MomentLog.objects.create(
             room=self.room,
             body="既存ログ",
@@ -1982,7 +1987,8 @@ class PostgreSQLIntegrityTests(TransactionTestCase):
             Task.objects.create(
                 room=self.room,
                 title="期間外期限のTask",
-                due_date=(self.room.ends_at + timedelta(days=1)).date(),
+                due_date=timezone.localtime(self.room.ends_at).date()
+                + timedelta(days=1),
             )
 
     def test_moment_room_boundary_trigger_rejects_other_room_task(self):
@@ -2292,7 +2298,8 @@ class TaskModelTests(TestCase):
         form = TaskForm(
             {
                 "title": "期間外タスク",
-                "due_date": (self.room.ends_at + timedelta(days=1)).date(),
+                "due_date": timezone.localtime(self.room.ends_at).date()
+                + timedelta(days=1),
                 "category": "",
             },
             room=self.room,

@@ -55,31 +55,25 @@
         <label class="field__label" for="{{ form.task.id_for_label }}">関連Task</label>{{ form.task }}
         {% if form.task.errors %}<span class="form-error">{{ form.task.errors|striptags }}</span>{% endif %}
         {% if photo_uploads_enabled %}<label class="task-completion-option" data-task-completion hidden><input type="checkbox" name="complete_task" value="1" {% if request.POST.complete_task %}checked{% endif %}><span><strong>このTaskを完了する</strong><small>このSHUNKAN-logと写真をTaskの記録として残します。</small></span></label>{% endif %}
-        <details class="quick-create" data-quick-create="task">
+        <details class="quick-create" data-quick-create="task" data-quick-create-form="quick-task-form">
           <summary>＋ Taskを追加</summary>
-          <div class="quick-create__body">
-            <form class="quick-create__form" data-quick-create-form action="{% url 'task_quick_create' room.pk %}" method="post">
-              {% csrf_token %}
-              <div class="field"><label class="field__label" for="quick-task-title">Task名</label><input class="field__input" id="quick-task-title" name="title" maxlength="100" placeholder="例：花火を見る"></div>
-              <div class="field"><label class="field__label" for="quick-task-due">期限（任意）</label><input class="field__input" id="quick-task-due" name="due_date" type="date"></div>
-              <p class="form-error" data-quick-create-error role="alert" hidden></p>
-              <button class="small-button" type="submit">追加する</button>
-            </form>
+          <div class="quick-create__body quick-create__form">
+            <div class="field"><label class="field__label" for="quick-task-title">Task名</label><input class="field__input" id="quick-task-title" name="title" maxlength="100" placeholder="例：花火を見る" form="quick-task-form"></div>
+            <div class="field"><label class="field__label" for="quick-task-due">期限（任意）</label><input class="field__input" id="quick-task-due" name="due_date" type="date" form="quick-task-form"></div>
+            <p class="form-error" data-quick-create-error role="alert" hidden></p>
+            <button class="small-button" type="submit" form="quick-task-form">追加する</button>
           </div>
         </details>
       </div>
       <div class="field">
         <label class="field__label" for="{{ form.category.id_for_label }}">カテゴリ</label>{{ form.category }}
         {% if form.category.errors %}<span class="form-error">{{ form.category.errors|striptags }}</span>{% endif %}
-        <details class="quick-create" data-quick-create="category">
+        <details class="quick-create" data-quick-create="category" data-quick-create-form="quick-category-form">
           <summary>＋ カテゴリを追加</summary>
-          <div class="quick-create__body">
-            <form class="quick-create__form" data-quick-create-form action="{% url 'category_quick_create' room.pk %}" method="post">
-              {% csrf_token %}
-              <div class="field"><label class="field__label" for="quick-category-name">カテゴリ名</label><input class="field__input" id="quick-category-name" name="name" maxlength="30" placeholder="例：花火"></div>
-              <p class="form-error" data-quick-create-error role="alert" hidden></p>
-              <button class="small-button" type="submit">追加する</button>
-            </form>
+          <div class="quick-create__body quick-create__form">
+            <div class="field"><label class="field__label" for="quick-category-name">カテゴリ名</label><input class="field__input" id="quick-category-name" name="name" maxlength="30" placeholder="例：花火" form="quick-category-form"></div>
+            <p class="form-error" data-quick-create-error role="alert" hidden></p>
+            <button class="small-button" type="submit" form="quick-category-form">追加する</button>
           </div>
         </details>
       </div>
@@ -89,6 +83,10 @@
   <button class="primary-button primary-button--accent" type="submit">{% if can_post_reflection and not can_post_moment %}振り返りを保存する{% else %}この瞬間を保存する{% endif %}</button>
   <a class="secondary-button" href="{% url 'room_detail' room.pk %}">キャンセル</a>
 </form>
+{% if can_post_moment %}
+<form id="quick-task-form" data-quick-create-form action="{% url 'task_quick_create' room.pk %}" method="post">{% csrf_token %}</form>
+<form id="quick-category-form" data-quick-create-form action="{% url 'category_quick_create' room.pk %}" method="post">{% csrf_token %}</form>
+{% endif %}
 {% else %}
 <p class="readonly-notice">このRoomは閲覧専用です。新しい記録は追加できません。</p>
 <a class="secondary-button page-back-button" href="{% url 'room_album' room.pk %}">アルバムを見る</a>
@@ -104,4 +102,4 @@
 {% endif %}
 {% endblock %}
 {% block navigation %}{% include "core/includes/bottom_nav.html" %}{% endblock %}
-{% block scripts %}<script src="https://cdn.jsdelivr.net/npm/exif-js@2.3.0/exif.js" defer></script>{% if photo_uploads_enabled %}<script src="{% static 'core/js/exif-reader.js' %}" defer></script><script src="{% static 'core/js/camera-capture.js' %}" defer></script>{% endif %}{% endblock %}
+{% block scripts %}<script src="https://cdn.jsdelivr.net/npm/exif-js@2.3.0/exif.js" defer></script>{% if photo_uploads_enabled %}<script src="{% static 'core/js/exif-reader.js' %}" defer></script><script src="{% static 'core/js/camera-capture.js' %}" defer></script>{% endif %}<script src="{% static 'core/js/quick-create.js' %}" defer></script>{% endblock %}
