@@ -51,6 +51,19 @@ class TaskUpdateForm(forms.ModelForm):
             "due_date": forms.DateInput(attrs={"type": "date"}),
         }
 
+    def __init__(self, *args, room, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.room = room
+
+    def clean_due_date(self):
+        due_date = self.cleaned_data["due_date"]
+        if due_date:
+            starts_on = timezone.localtime(self.room.starts_at).date()
+            ends_on = timezone.localtime(self.room.ends_at).date()
+            if not starts_on <= due_date <= ends_on:
+                raise forms.ValidationError("期限はRoom期間内で設定してください。")
+        return due_date
+
 
 class MomentLogUpdateForm(forms.ModelForm):
     class Meta:
@@ -129,6 +142,8 @@ class MomentLogForm(forms.ModelForm):
     def __init__(self, *args, room, now=None, **kwargs):
         super().__init__(*args, **kwargs)
         self.room = room
+        # ModelFormのモデル検証で、Task/Categoryの所属Roomを正しく判定できるようにする。
+        self.instance.room = room
         self.now = now
         self.permission = None
         category_field = cast(forms.ModelChoiceField, self.fields["category"])
