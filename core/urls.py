@@ -56,6 +56,16 @@ urlpatterns = [
         name="room_moments_new",
     ),
     path(
+        "rooms/<int:room_id>/tasks/quick-create/",
+        views.task_quick_create,
+        name="task_quick_create",
+    ),
+    path(
+        "rooms/<int:room_id>/categories/quick-create/",
+        views.category_quick_create,
+        name="category_quick_create",
+    ),
+    path(
         "rooms/<int:room_id>/moments/<int:moment_id>/update/",
         views.moment_update,
         name="moment_update",

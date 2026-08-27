@@ -50,8 +50,34 @@
         <label class="field__label" for="{{ form.task.id_for_label }}">関連Task</label>{{ form.task }}
         {% if form.task.errors %}<span class="form-error">{{ form.task.errors|striptags }}</span>{% endif %}
         <label class="task-completion-option" data-task-completion hidden><input type="checkbox" name="complete_task" value="1" {% if request.POST.complete_task %}checked{% endif %}><span><strong>このTaskを完了する</strong><small>写真を最初の思い出として残します。</small></span></label>
+        <details class="quick-create" data-quick-create="task">
+          <summary></summary>＋ Taskを追加</summary>
+          <div class="quick-create__body">
+            <form class="quick-create__form" data-quick-create-form action="{% url 'task_quick_create' room.pk %}" method="post">
+              {% csrf_token %}
+              <div class="field"><label class="field__label" for="quick-task-title">Task名</label><input class="field__input" id="quick-task-title" name="title" maxlength="100" placeholder="例：花火を見る"></div>
+              <div class="field"><label class="field__label" for="quick-task-due">期限（任意）</label><input class="field__input" id="quick-task-due" name="due_date" type="date"></div>
+              <p class="form-error" data-quick-create-error role="alert" hidden></p>
+              <button class="small-button" type="submit">追加する</button>
+            </form>
+          </div>
+        </details>
       </div>
-      <div class="field"><label class="field__label" for="{{ form.category.id_for_label }}">カテゴリ</label>{{ form.category }}{% if form.category.errors %}<span class="form-error">{{ form.category.errors|striptags }}</span>{% endif %}</div>
+      <div class="field">
+        <label class="field__label" for="{{ form.category.id_for_label }}">カテゴリ</label>{{ form.category }}
+        {% if form.category.errors %}<span class="form-error">{{ form.category.errors|striptags }}</span>{% endif %}
+        <details class="quick-create" data-quick-create="category">
+          <summary>＋ </summary>カテゴリを追加</summary>
+          <div class="quick-create__body">
+            <form class="quick-create__form" data-quick-create-form action="{% url 'category_quick_create' room.pk %}" method="post">
+              {% csrf_token %}
+              <div class="field"><label class="field__label" for="quick-category-name">カテゴリ名</label><input class="field__input" id="quick-category-name" name="name" maxlength="30" placeholder="例：花火"></div>
+              <p class="form-error" data-quick-create-error role="alert" hidden></p>
+              <button class="small-button" type="submit">追加する</button>
+            </form>
+          </div>
+        </details>
+      </div>
     </div>
   </details>
   <button class="primary-button primary-button--accent" type="submit">この瞬間を保存する</button>

@@ -29,9 +29,12 @@ from .forms import (
     RoomForm,
     TaskForm,
     TaskUpdateForm,
+    _task_label,
 )
 from .image_processing import process_uploaded_image, read_captured_at
 from .models import MomentLog, Photo, Room, Task
+from .image_processing import process_uploaded_image
+from .models import Category, MomentLog, Photo, Room, Task
 from .room_state import log_post_permission, require_active_room, room_is_active
 
 
@@ -174,6 +177,41 @@ def room_tasks(request, room_id):
         }
     )
     return render(request, "core/tasks.html", context)
+
+
+@login_required
+@require_POST
+def task_quick_create(request, room_id):
+    room = get_owned_room(request.user, room_id)
+    require_active_room(room)
+    form = TaskForm(request.POST, room=room)
+    if form.is_valid():
+        task = form.save(commit=False)
+        task.room = room
+        task.save()
+        return JsonResponse({"id": task.pk, "label": _task_label(task)})
+    return JsonResponse(
+        {"errors": form.errors.as_json()},
+        status=400,
+    )
+
+
+@login_required
+@require_POST
+def category_quick_create(request, room_id):
+    room = get_owned_room(request.user, room_id)
+    require_active_room(room)
+    form = CategoryForm(request.POST, room=room)
+    if form.is_valid():
+        category = form.save(commit=False)
+        category.room = room
+        category.sort_order = room.categories.count()
+        category.save()
+        return JsonResponse({"id": category.pk, "label": category.name})
+    return JsonResponse(
+        {"errors": form.errors.as_json()},
+        status=400,
+    )
 
 
 @login_required
@@ -366,7 +404,7 @@ def room_categories(request, room_id):
     if request.method == "POST":
         if not room_display_context(room, active_nav="tasks")["room_is_active"]:
             raise PermissionDenied("開催中のRoomだけカテゴリを追加できます。")
-        form = CategoryForm(request.POST)
+        form = CategoryForm(request.POST, room=room)
         if form.is_valid():
             category = form.save(commit=False)
             category.room = room
@@ -374,8 +412,8 @@ def room_categories(request, room_id):
             category.save()
             return redirect("room_categories", room_id=room.pk)
     else:
-        form = CategoryForm()
-    context = room_display_context(room, active_nav="tasks")
+        form = CategoryForm(room=room)
+   ˜ context = room_display_context(room, active_nav="tasks")
     context.update(
         {
             "form": form,
@@ -391,7 +429,7 @@ def category_update(request, room_id, category_id):
     category = get_owned_category(request.user, room_id, category_id)
     room = get_owned_room(request.user, room_id)
     require_active_room(room)
-    form = CategoryForm(request.POST or None, instance=category)
+    form = CategoryForm(request.POST or None, instance=category, room=room)
     if request.method == "POST" and form.is_valid():
         form.save()
         return redirect("room_categories", room_id=room_id)
