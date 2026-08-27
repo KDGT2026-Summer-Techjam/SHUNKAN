@@ -422,6 +422,18 @@ def task_delete(request, room_id, task_id):
 
 
 @login_required
+@require_POST
+def task_toggle(request, room_id, task_id):
+    room = get_owned_room(request.user, room_id)
+    require_active_room(room)
+    task = get_owned_task(request.user, room_id, task_id)
+    task.is_completed = not task.is_completed
+    task.completed_at = timezone.now() if task.is_completed else None
+    task.save(update_fields=["is_completed", "completed_at", "updated_at"])
+    return redirect("task_list", room_id=room_id)
+
+
+@login_required
 def moment_list(request, room_id):
     room = get_owned_room(request.user, room_id)
     moment_qs = owned_moment_logs(request.user, room_id).prefetch_related("photos")

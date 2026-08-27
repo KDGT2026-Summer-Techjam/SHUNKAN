@@ -1269,6 +1269,40 @@ class PhotoOwnerAccessTests(TestCase):
                 self.assertFalse(room.moment_logs.exists())
 
 
+class TaskToggleViewTests(TestCase):
+    def setUp(self):
+        self.user = get_user_model().objects.create_user(
+            username="toggle-user",
+            password="test-password-123",
+        )
+        now = timezone.now()
+        self.room = Room.objects.create(
+            owner=self.user,
+            name="開催中Room",
+            starts_at=now - timedelta(hours=1),
+            ends_at=now + timedelta(hours=1),
+        )
+        self.task = Task.objects.create(room=self.room, title="切り替えるTask")
+        self.client.force_login(self.user)
+
+    def test_task_can_toggle_completion_and_timestamp(self):
+        url = reverse("task_toggle", args=[self.room.pk, self.task.pk])
+
+        response = self.client.post(url)
+
+        self.assertRedirects(response, reverse("task_list", args=[self.room.pk]))
+        self.task.refresh_from_db()
+        self.assertTrue(self.task.is_completed)
+        self.assertIsNotNone(self.task.completed_at)
+
+        response = self.client.post(url)
+
+        self.assertRedirects(response, reverse("task_list", args=[self.room.pk]))
+        self.task.refresh_from_db()
+        self.assertFalse(self.task.is_completed)
+        self.assertIsNone(self.task.completed_at)
+
+
 class RoomMutationStateTests(TestCase):
     def setUp(self):
         self.user = get_user_model().objects.create_user(
@@ -1324,6 +1358,15 @@ class RoomMutationStateTests(TestCase):
 
         self.assertEqual(response.status_code, 403)
         self.assertTrue(Task.objects.filter(pk=self.task.pk).exists())
+
+    def test_ended_room_cannot_toggle_task(self):
+        response = self.client.post(
+            reverse("task_toggle", args=[self.room.pk, self.task.pk])
+        )
+
+        self.assertEqual(response.status_code, 403)
+        self.task.refresh_from_db()
+        self.assertFalse(self.task.is_completed)
 
     def test_ended_room_cannot_delete_moment(self):
         response = self.client.post(

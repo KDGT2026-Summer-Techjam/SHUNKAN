@@ -4,7 +4,7 @@
 
 画面案は `core/templates/core/` に置き、Django Templatesとして表示する。画面構造、文言、フォーム項目、画面間の導線を確認したうえで、対応するIssueの範囲でデータ表示、保存処理、認証、CSS、JavaScriptを段階的に接続する。
 
-現在は `{% load static %}`、`{% static %}`、`{% url %}`、POSTフォームの `{% csrf_token %}` を接続済みである。Django標準Authによる新規登録・ログイン・ログアウトと、未ログイン利用者をRoom関連画面からログイン画面へ戻す制御も実装済みである。開発用の `DEBUG=True` 環境では `seed_demo` が公開デモアカウント `demo / demo` を作成する。Room一覧・作成・詳細、Task作成、SHUNKAN-logと写真の保存、Room別Album表示はログイン中の利用者のRoomへ接続済みである。Task編集・削除・完了切替、Room状態による操作制御、写真の形式・容量・DB上限保証は未実装であり、画面が表示できることは機能実装の完了を表さない。
+現在は `{% load static %}`、`{% static %}`、`{% url %}`、POSTフォームの `{% csrf_token %}` を接続済みである。Django標準Authによる新規登録・ログイン・ログアウトと、未ログイン利用者をRoom関連画面からログイン画面へ戻す制御も実装済みである。開発用の `DEBUG=True` 環境では `seed_demo` が公開デモアカウント `demo / demo` を作成する。Room一覧・作成・詳細、Task作成・編集・削除・完了切替、SHUNKAN-logと写真の保存、Room別Album表示はログイン中の利用者のRoomへ接続済みである。Room状態による操作制御、写真の形式・容量検証、PostgreSQLの期間・Room境界・完了状態・写真枚数制約も実装済みである。画面が表示できることだけでなく、PostgreSQLの回帰テストと主要導線の確認を完了条件とする。
 
 ## 現在の単体HTML
 
