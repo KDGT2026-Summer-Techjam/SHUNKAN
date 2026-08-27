@@ -208,6 +208,19 @@ class MomentLog(models.Model):
     def clean(self):
         super().clean()
 
+        if self.entry_type == self.EntryType.REFLECTION:
+            relation_errors = {}
+            if self.task_id is not None:
+                relation_errors["task"] = "振り返りログにはTaskを関連付けできません。"
+            if self.category_id is not None:
+                relation_errors["category"] = "振り返りログにはカテゴリを関連付けできません。"
+            if self.pk and self.photos.exists():
+                relation_errors["entry_type"] = (
+                    "写真があるSHUNKAN-logを振り返りログには変更できません。"
+                )
+            if relation_errors:
+                raise ValidationError(relation_errors)
+
         if self.task is not None and self.task.room_id != self.room_id:
             raise ValidationError(
                 {"task": "Task must belong to the same Room."}
@@ -278,6 +291,13 @@ class Photo(models.Model):
 
     def clean(self):
         super().clean()
+        if (
+            self.moment_log_id
+            and self.moment_log.entry_type == MomentLog.EntryType.REFLECTION
+        ):
+            raise ValidationError(
+                {"moment_log": "振り返りログには写真を追加できません。"}
+            )
         if self.moment_log_id and self._state.adding:
             if self.moment_log.photos.count() >= 3:
                 raise ValidationError(

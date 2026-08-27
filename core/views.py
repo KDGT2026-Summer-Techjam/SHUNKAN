@@ -5,7 +5,7 @@ from django.contrib.auth import login
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import UserCreationForm
 from django.core.exceptions import PermissionDenied, ValidationError
-from django.db import transaction
+from django.db import IntegrityError, transaction
 from django.http import JsonResponse
 from django.shortcuts import redirect, render
 from django.utils import timezone
@@ -32,8 +32,6 @@ from .forms import (
     _task_label,
 )
 from .image_processing import process_uploaded_image, read_captured_at
-from .models import MomentLog, Photo, Room, Task
-from .image_processing import process_uploaded_image
 from .models import Category, MomentLog, Photo, Room, Task
 from .room_state import log_post_permission, require_active_room, room_is_active
 
@@ -267,6 +265,9 @@ def room_moments_new(request, room_id):
             form.add_error(None, "完了するタスクを選んでください。")
         if complete_task and not images:
             form.add_error(None, "タスクを写真と一緒に完了するには、写真を1枚以上追加してください。")
+        for index, caption in enumerate(captions, start=1):
+            if len(caption) > 140:
+                form.add_error(None, f"写真{index}: キャプションは140文字以内で入力してください。")
         if len(images) > 3:
             form.add_error(None, "写真は3枚までです。")
         else:
@@ -320,27 +321,60 @@ def room_moments_new(request, room_id):
                 )
                 parsed_captured_data.append((captured_at, source))
         if form.is_valid():
+            saved = False
             with transaction.atomic():
-                moment = form.save(commit=False)
-                moment.room = room
-                completed_at = timezone.now()
-                moment.occurred_at = completed_at
-                moment.save()
-                if complete_task and moment.task is not None:
-                    moment.task.is_completed = True
-                    moment.task.completed_at = completed_at
-                    moment.task.save(update_fields=["is_completed", "completed_at", "updated_at"])
-                for index, image in enumerate(processed_images):
-                    captured_at, source = parsed_captured_data[index]
-                    Photo.objects.create(
-                        moment_log=moment,
-                        image=image,
-                        caption=captions[index] if index < len(captions) else "",
-                        captured_at=captured_at,
-                        captured_at_source=source,
-                        sort_order=index,
-                    )
-            return redirect("room_album", room_id=room.pk)
+                locked_room = Room.objects.select_for_update().get(
+                    pk=room.pk,
+                    owner=request.user,
+                )
+                saved_at = timezone.now()
+                final_permission = log_post_permission(
+                    locked_room,
+                    requested_entry_type,
+                    now=saved_at,
+                )
+                if not final_permission.allowed:
+                    form.add_error(None, final_permission.message)
+                else:
+                    moment = form.save(commit=False)
+                    moment.room = locked_room
+                    moment.occurred_at = saved_at
+                    locked_task = None
+                    if complete_task and moment.task_id is not None:
+                        locked_task = Task.objects.select_for_update().get(
+                            pk=moment.task_id,
+                            room=locked_room,
+                        )
+                        if locked_task.is_completed:
+                            form.add_error(None, "このタスクはすでに完了しています。")
+                    if not form.errors:
+                        moment.task = locked_task or moment.task
+                        moment.save()
+                        if locked_task is not None:
+                            locked_task.is_completed = True
+                            locked_task.completed_at = saved_at
+                            locked_task.save(
+                                update_fields=[
+                                    "is_completed",
+                                    "completed_at",
+                                    "updated_at",
+                                ]
+                            )
+                        for index, image in enumerate(processed_images):
+                            captured_at, source = parsed_captured_data[index]
+                            Photo.objects.create(
+                                moment_log=moment,
+                                image=image,
+                                caption=(
+                                    captions[index] if index < len(captions) else ""
+                                ),
+                                captured_at=captured_at,
+                                captured_at_source=source,
+                                sort_order=index,
+                            )
+                        saved = True
+            if saved:
+                return redirect("room_album", room_id=room.pk)
     else:
         form = MomentLogForm(room=room, now=now)
     context = room_display_context(room, active_nav="capture")
@@ -430,7 +464,7 @@ def room_categories(request, room_id):
             return redirect("room_categories", room_id=room.pk)
     else:
         form = CategoryForm(room=room)
-   ˜ context = room_display_context(room, active_nav="tasks")
+    context = room_display_context(room, active_nav="tasks")
     context.update(
         {
             "form": form,
@@ -478,8 +512,22 @@ def room_update(request, room_id):
     require_active_room(room)
     form = RoomForm(request.POST or None, instance=room)
     if request.method == "POST" and form.is_valid():
-        form.save()
-        return redirect("room_detail", room_id=room.pk)
+        try:
+            with transaction.atomic():
+                locked_room = Room.objects.select_for_update().get(
+                    pk=room.pk,
+                    owner=request.user,
+                )
+                locked_form = RoomForm(request.POST, instance=locked_room)
+                if locked_form.is_valid():
+                    locked_form.save()
+                    return redirect("room_detail", room_id=room.pk)
+                form = locked_form
+        except IntegrityError:
+            form.add_error(
+                None,
+                "関連データが更新されたためRoomを更新できませんでした。もう一度確認してください。",
+            )
     context = room_display_context(room, active_nav="room")
     context.update(
         {"form": form, "heading": "Roomを更新", "form_kind": "room"}

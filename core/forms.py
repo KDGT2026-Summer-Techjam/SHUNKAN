@@ -46,9 +46,42 @@ class RoomForm(forms.ModelForm):
 
     def clean(self):
         cleaned_data = super().clean()
+        starts_at = cleaned_data.get("starts_at")
         ends_at = cleaned_data.get("ends_at")
         if ends_at is not None:
             self.instance.reflection_deadline_at = ends_at + self.REFLECTION_WINDOW
+
+        if not self.instance.pk or starts_at is None or ends_at is None:
+            return cleaned_data
+
+        starts_on = timezone.localtime(starts_at).date()
+        ends_on = timezone.localtime(ends_at).date()
+        if self.instance.tasks.filter(due_date__isnull=False).exclude(
+            due_date__range=(starts_on, ends_on)
+        ).exists():
+            self.add_error(
+                "ends_at",
+                "既存Taskの期限がRoom期間外になるため更新できません。",
+            )
+
+        reflection_deadline = ends_at + self.REFLECTION_WINDOW
+        if self.instance.moment_logs.filter(
+            entry_type=MomentLog.EntryType.MOMENT
+        ).exclude(occurred_at__gte=starts_at, occurred_at__lt=ends_at).exists():
+            self.add_error(
+                "ends_at",
+                "既存の通常SHUNKAN-logがRoom期間外になるため更新できません。",
+            )
+        if self.instance.moment_logs.filter(
+            entry_type=MomentLog.EntryType.REFLECTION
+        ).exclude(
+            occurred_at__gte=ends_at,
+            occurred_at__lte=reflection_deadline,
+        ).exists():
+            self.add_error(
+                "ends_at",
+                "既存の振り返りが振り返り期間外になるため更新できません。",
+            )
         return cleaned_data
 
 

@@ -15,8 +15,6 @@ from django.urls import reverse
 from django.utils import timezone
 from PIL import Image
 
-from django.core.files.uploadedfile import SimpleUploadedFile
-
 from .image_processing import (
     MAX_IMAGE_DIMENSION,
     MAX_SOURCE_PIXELS,
@@ -24,7 +22,7 @@ from .image_processing import (
     process_uploaded_image,
     read_captured_at,
 )
-from .forms import MomentLogForm, RoomForm
+from .forms import MomentLogForm, RoomForm, TaskForm
 from .models import Room, Category, Task, MomentLog, Photo
 from .room_state import log_post_permission
 
@@ -125,7 +123,7 @@ class ImageProcessingTests(TestCase):
 
     @patch("core.image_processing.Image.open")
     def test_image_with_too_many_pixels_is_rejected(self, image_open):
-        image_open.return_value = Mock(
+        image_open.return_value.__enter__.return_value = Mock(
             format="JPEG",
             width=MAX_SOURCE_PIXELS + 1,
             height=1,
@@ -217,7 +215,34 @@ class MomentImageUploadTests(TestCase):
         self.assertTrue(task.is_completed)
         self.assertIsNotNone(task.completed_at)
         moment = MomentLog.objects.get(task=task)
+        self.assertEqual(moment.occurred_at, task.completed_at)
         self.assertEqual(moment.photos.count(), 1)
+
+    def test_completed_task_photo_flow_preserves_completion_and_creates_nothing(self):
+        completed_at = timezone.now() - timedelta(minutes=10)
+        task = Task.objects.create(
+            room=self.room,
+            title="完了済みタスク",
+            is_completed=True,
+            completed_at=completed_at,
+        )
+
+        response = self.client.post(
+            reverse("room_moments_new", args=[self.room.pk]),
+            {
+                "body": "重複して完了しない",
+                "task": task.pk,
+                "complete_task": "1",
+                "images": self.make_jpeg(),
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "このタスクはすでに完了しています。")
+        task.refresh_from_db()
+        self.assertEqual(task.completed_at, completed_at)
+        self.assertFalse(MomentLog.objects.filter(task=task).exists())
+        self.assertFalse(Photo.objects.filter(moment_log__task=task).exists())
 
     def test_task_completion_requires_a_photo(self):
         task = Task.objects.create(room=self.room, title="写真が必要なタスク")
@@ -1263,7 +1288,26 @@ class RoomViewTests(TestCase):
         self.owner_room.refresh_from_db()
         self.assertEqual(self.owner_room.name, "更新したRoom")
 
-    def test_cannot_update_another_users_room(self):
+    @patch("core.views.RoomForm.save", side_effect=IntegrityError)
+    def test_room_update_conflict_returns_form_errors(self, _save):
+        response = self.client.post(
+            reverse("room_update", args=[self.owner_room.pk]),
+            {
+                "name": "競合したRoom",
+                "starts_at": "2026-08-20T12:00",
+                "ends_at": "2026-08-30T12:00",
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn(
+            "関連データが更新されたためRoomを更新できませんでした。もう一度確認してください。",
+            response.context["form"].non_field_errors(),
+        )
+        self.owner_room.refresh_from_db()
+        self.assertEqual(self.owner_room.name, "自分のRoom")
+
+    def test_cusers_room(self):
         response = self.client.post(
             reverse("room_update", args=[self.other_room.pk]),
             {
@@ -1692,6 +1736,88 @@ class TaskToggleViewTests(TestCase):
         self.task.refresh_from_db()
         self.assertFalse(self.task.is_completed)
         self.assertIsNone(self.task.completed_at)
+
+
+class RelationalIntegrityRegressionTests(TestCase):
+    def setUp(self):
+        self.user = get_user_model().objects.create_user(username="integrity-user")
+        self.now = timezone.now()
+        self.room = Room.objects.create(
+            owner=self.user,
+            name="整合性Room",
+            starts_at=self.now - timedelta(hours=1),
+            ends_at=self.now + timedelta(hours=1),
+            reflection_deadline_at=self.now + timedelta(days=7),
+        )
+        self.task = Task.objects.create(room=self.room, title="関連Task")
+        self.category = Category.objects.create(room=self.room, name="関連Category")
+        self.client.force_login(self.user)
+
+    def test_reflection_model_rejects_task_and_category(self):
+        reflection = MomentLog(
+            room=self.room,
+            task=self.task,
+            category=self.category,
+            body="不正な振り返り",
+            occurred_at=self.room.ends_at,
+            entry_type=MomentLog.EntryType.REFLECTION,
+        )
+
+        with self.assertRaises(ValidationError) as raised:
+            reflection.full_clean()
+
+        self.assertIn("task", raised.exception.message_dict)
+        self.assertIn("category", raised.exception.message_dict)
+
+    def test_photo_model_rejects_reflection_parent(self):
+        reflection = MomentLog.objects.create(
+            room=self.room,
+            body="振り返り",
+            occurred_at=self.room.ends_at,
+            entry_type=MomentLog.EntryType.REFLECTION,
+        )
+        photo = Photo(moment_log=reflection, image="moment_photos/reflection.jpg")
+
+        with self.assertRaisesMessage(ValidationError, "写真を追加できません"):
+            photo.full_clean()
+
+    def test_room_form_rejects_period_excluding_existing_children(self):
+        Task.objects.filter(pk=self.task.pk).update(due_date=self.room.ends_at.date())
+        MomentLog.objects.create(
+            room=self.room,
+            body="既存ログ",
+            occurred_at=self.now,
+        )
+        form = RoomForm(
+            {
+                "name": self.room.name,
+                "starts_at": self.now + timedelta(days=1),
+                "ends_at": self.now + timedelta(days=1, minutes=10),
+            },
+            instance=self.room,
+        )
+
+        self.assertFalse(form.is_valid())
+        self.assertIn("ends_at", form.errors)
+
+    def test_upload_caption_over_140_characters_is_rejected_before_writes(self):
+        output = BytesIO()
+        Image.new("RGB", (20, 20), "coral").save(output, format="JPEG")
+        response = self.client.post(
+            reverse("room_moments_new", args=[self.room.pk]),
+            {
+                "body": "長いキャプション",
+                "images": SimpleUploadedFile(
+                    "caption.jpg", output.getvalue(), content_type="image/jpeg"
+                ),
+                "captions": "あ" * 141,
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "140文字以内")
+        self.assertFalse(MomentLog.objects.filter(room=self.room).exists())
+        self.assertFalse(Photo.objects.exists())
 
 
 class RoomMutationStateTests(TestCase):

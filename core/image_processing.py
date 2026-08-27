@@ -10,6 +10,9 @@ from PIL import Image, ImageOps, ImageSequence, UnidentifiedImageError
 MAX_UPLOAD_SIZE = 10 * 1024 * 1024
 MAX_IMAGE_DIMENSION = 1920
 MAX_SOURCE_PIXELS = 40_000_000
+MAX_GIF_FRAMES = 200
+MAX_GIF_TOTAL_PIXELS = 100_000_000
+MAX_GIF_TOTAL_DURATION_MS = 300_000
 ALLOWED_FORMATS = {"JPEG", "PNG", "WEBP", "GIF"}
 FORMAT_EXTENSIONS = {
     "JPEG": ".jpg",
@@ -54,22 +57,22 @@ def read_captured_at(uploaded_file):
 
 
 def process_uploaded_image(uploaded_file):
-    if uploaded_file.size > MAX_UPLOAD_SIZE:
-        raise ValidationError("写真は1枚10MB以下にしてください。")
-
     try:
-        image = Image.open(uploaded_file)
-        image_format = image.format
-        if image_format not in ALLOWED_FORMATS:
-            raise ValidationError("写真はJPEG、PNG、WebP、GIF形式にしてください。")
-        if image.width * image.height > MAX_SOURCE_PIXELS:
-            raise ValidationError("画像の縦横サイズが大きすぎます。")
+        if uploaded_file.size > MAX_UPLOAD_SIZE:
+            raise ValidationError("写真は1枚10MB以下にしてください。")
 
-        output = BytesIO()
-        if image_format == "GIF" and getattr(image, "is_animated", False):
-            _save_animated_gif(image, output)
-        else:
-            _save_static_image(image, image_format, output)
+        with Image.open(uploaded_file) as image:
+            image_format = image.format
+            if image_format not in ALLOWED_FORMATS:
+                raise ValidationError("写真はJPEG、PNG、WebP、GIF形式にしてください。")
+            if image.width * image.height > MAX_SOURCE_PIXELS:
+                raise ValidationError("画像の縦横サイズが大きすぎます。")
+
+            output = BytesIO()
+            if image_format == "GIF" and getattr(image, "is_animated", False):
+                _save_animated_gif(image, output)
+            else:
+                _save_static_image(image, image_format, output)
     except ValidationError:
         raise
     except (
@@ -115,27 +118,59 @@ def _save_animated_gif(image, output):
     frames = []
     durations = []
     disposals = []
+    total_pixels = 0
+    total_duration = 0
 
-    for frame in ImageSequence.Iterator(image):
-        resized_frame = frame.convert("RGBA")
-        resized_frame.thumbnail(
-            (MAX_IMAGE_DIMENSION, MAX_IMAGE_DIMENSION),
-            Image.Resampling.LANCZOS,
+    try:
+        for frame_number, frame in enumerate(ImageSequence.Iterator(image), start=1):
+            if frame_number > MAX_GIF_FRAMES:
+                raise ValidationError(
+                    f"GIFアニメーションは{MAX_GIF_FRAMES}フレーム以下にしてください。"
+                )
+
+            total_pixels += frame.width * frame.height
+            if total_pixels > MAX_GIF_TOTAL_PIXELS:
+                raise ValidationError(
+                    "GIFアニメーションの合計画素数が大きすぎます。"
+                )
+
+            duration = frame.info.get("duration", image.info.get("duration", 100))
+            total_duration += duration
+            if total_duration > MAX_GIF_TOTAL_DURATION_MS:
+                raise ValidationError(
+                    "GIFアニメーションの再生時間は合計300秒以下にしてください。"
+                )
+
+            resized_frame = frame.convert("RGBA")
+            resized_frame.thumbnail(
+                (MAX_IMAGE_DIMENSION, MAX_IMAGE_DIMENSION),
+                Image.Resampling.LANCZOS,
+            )
+            frames.append(
+                resized_frame.convert("P", palette=Image.Palette.ADAPTIVE)
+            )
+            resized_frame.close()
+            durations.append(duration)
+            disposals.append(
+                frame.info.get(
+                    "disposal",
+                    getattr(frame, "disposal_method", image.info.get("disposal", 2)),
+                )
+            )
+
+        if not frames:
+            raise ValidationError("GIF画像に表示できるフレームがありません。")
+
+        frames[0].save(
+            output,
+            format="GIF",
+            save_all=True,
+            append_images=frames[1:],
+            duration=durations,
+            disposal=disposals,
+            loop=image.info.get("loop", 0),
+            optimize=True,
         )
-        frames.append(resized_frame.convert("P", palette=Image.Palette.ADAPTIVE))
-        durations.append(frame.info.get("duration", image.info.get("duration", 100)))
-        disposals.append(frame.info.get("disposal", image.info.get("disposal", 2)))
-
-    if not frames:
-        raise ValidationError("GIF画像に表示できるフレームがありません。")
-
-    frames[0].save(
-        output,
-        format="GIF",
-        save_all=True,
-        append_images=frames[1:],
-        duration=durations,
-        disposal=disposals,
-        loop=image.info.get("loop", 0),
-        optimize=True,
-    )
+    finally:
+        for frame in frames:
+            frame.close()
