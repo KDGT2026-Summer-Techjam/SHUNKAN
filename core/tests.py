@@ -1072,6 +1072,66 @@ class TaskOwnerAccessTests(TestCase):
         self.assertEqual(response.status_code, 404)
         self.assertTrue(Task.objects.filter(pk=self.other_task.pk).exists())
 
+    def test_owner_can_complete_task_with_json_response(self):
+        response = self.client.post(
+            reverse("task_complete", args=[self.owned_room.pk, self.owned_task.pk]),
+            HTTP_ACCEPT="application/json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["task"]["id"], self.owned_task.pk)
+        self.assertEqual(response.json()["task"]["title"], "自分のタスク")
+        self.owned_task.refresh_from_db()
+        self.assertTrue(self.owned_task.is_completed)
+        self.assertIsNotNone(self.owned_task.completed_at)
+
+    def test_complete_task_falls_back_to_task_list_without_javascript(self):
+        response = self.client.post(
+            reverse("task_complete", args=[self.owned_room.pk, self.owned_task.pk])
+        )
+
+        self.assertRedirects(response, reverse("task_list", args=[self.owned_room.pk]))
+        self.owned_task.refresh_from_db()
+        self.assertTrue(self.owned_task.is_completed)
+
+    def test_cannot_complete_another_users_task(self):
+        response = self.client.post(
+            reverse("task_complete", args=[self.other_room.pk, self.other_task.pk]),
+            HTTP_ACCEPT="application/json",
+        )
+
+        self.assertEqual(response.status_code, 404)
+        self.other_task.refresh_from_db()
+        self.assertFalse(self.other_task.is_completed)
+
+    def test_cannot_complete_task_twice(self):
+        self.owned_task.is_completed = True
+        self.owned_task.completed_at = timezone.now()
+        self.owned_task.save()
+
+        response = self.client.post(
+            reverse("task_complete", args=[self.owned_room.pk, self.owned_task.pk]),
+            HTTP_ACCEPT="application/json",
+        )
+
+        self.assertEqual(response.status_code, 409)
+        self.assertEqual(response.json()["error"], "このタスクはすでに完了しています。")
+
+    def test_cannot_complete_task_in_ended_room(self):
+        now = timezone.now()
+        self.owned_room.starts_at = now - timedelta(days=2)
+        self.owned_room.ends_at = now - timedelta(seconds=1)
+        self.owned_room.save(update_fields=["starts_at", "ends_at"])
+
+        response = self.client.post(
+            reverse("task_complete", args=[self.owned_room.pk, self.owned_task.pk]),
+            HTTP_ACCEPT="application/json",
+        )
+
+        self.assertEqual(response.status_code, 403)
+        self.owned_task.refresh_from_db()
+        self.assertFalse(self.owned_task.is_completed)
+
 
 class MomentLogOwnerAccessTests(TestCase):
     def setUp(self):

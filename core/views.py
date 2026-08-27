@@ -4,6 +4,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import UserCreationForm
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.db import transaction
+from django.http import JsonResponse
 from django.shortcuts import redirect, render
 from django.utils import timezone
 from django.views.decorators.http import require_http_methods, require_POST
@@ -28,7 +29,7 @@ from .forms import (
     TaskUpdateForm,
 )
 from .image_processing import process_uploaded_image
-from .models import MomentLog, Photo, Room
+from .models import MomentLog, Photo, Room, Task
 from .room_state import log_post_permission, require_active_room, room_is_active
 
 
@@ -431,6 +432,46 @@ def task_toggle(request, room_id, task_id):
     task.completed_at = timezone.now() if task.is_completed else None
     task.save(update_fields=["is_completed", "completed_at", "updated_at"])
     return redirect("task_list", room_id=room_id)
+
+
+@login_required
+@require_POST
+def task_complete(request, room_id, task_id):
+    """Persist a task completion before a client-side achievement effect."""
+    room = get_owned_room(request.user, room_id)
+    task = get_owned_task(request.user, room_id, task_id)
+    wants_json = "application/json" in request.headers.get("Accept", "")
+
+    if not room_is_active(room):
+        message = "開催中のRoomだけタスクを完了できます。"
+        if wants_json:
+            return JsonResponse({"error": message}, status=403)
+        raise PermissionDenied(message)
+
+    with transaction.atomic():
+        task = Task.objects.select_for_update().get(pk=task.pk, room=room)
+        if task.is_completed:
+            message = "このタスクはすでに完了しています。"
+            if wants_json:
+                return JsonResponse({"error": message}, status=409)
+            return redirect("task_list", room_id=room.pk)
+
+        completed_at = timezone.now()
+        task.is_completed = True
+        task.completed_at = completed_at
+        task.save(update_fields=["is_completed", "completed_at", "updated_at"])
+
+    if wants_json:
+        return JsonResponse(
+            {
+                "task": {
+                    "id": task.pk,
+                    "title": task.title,
+                    "completed_at": completed_at.isoformat(),
+                }
+            }
+        )
+    return redirect("task_list", room_id=room.pk)
 
 
 @login_required
