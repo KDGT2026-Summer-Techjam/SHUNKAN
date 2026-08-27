@@ -23,7 +23,7 @@ from .image_processing import (
     MAX_UPLOAD_SIZE,
     process_uploaded_image,
 )
-from .forms import MomentLogForm
+from .forms import MomentLogForm, TaskForm
 from .models import Room, Category, Task, MomentLog, Photo
 from .room_state import log_post_permission
 
@@ -388,6 +388,35 @@ class CategoryViewTests(TestCase):
         self.assertEqual(response.status_code, 403)
         self.assertFalse(Category.objects.filter(room=ended_room).exists())
 
+    def test_quick_create_adds_category_to_owned_room(self):
+        response = self.client.post(
+            reverse("category_quick_create", args=[self.owned_room.pk]),
+            {"name": "即席カテゴリ", "color": ""},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        category = Category.objects.get(room=self.owned_room, name="即席カテゴリ")
+        data = response.json()
+        self.assertEqual(data["id"], category.pk)
+        self.assertEqual(data["label"], "即席カテゴリ")
+
+    def test_quick_create_rejects_duplicate_category_name(self):
+        response = self.client.post(
+            reverse("category_quick_create", args=[self.owned_room.pk]),
+            {"name": "花火", "color": ""},
+        )
+
+        self.assertEqual(response.status_code, 400)
+
+    def test_quick_create_rejects_another_users_room(self):
+        response = self.client.post(
+            reverse("category_quick_create", args=[self.other_room.pk]),
+            {"name": "他人のRoomに追加", "color": ""},
+        )
+
+        self.assertEqual(response.status_code, 404)
+        self.assertFalse(Category.objects.filter(name="他人のRoomに追加").exists())
+
 
 class MomentLogFormTests(TestCase):
     def test_task_choices_show_title_and_due_date(self):
@@ -687,6 +716,12 @@ class AuthenticationViewTests(TestCase):
         self.assertContains(response, 'href="/accounts/signup/"')
         self.assertContains(response, "csrfmiddlewaretoken")
         self.assertNotContains(response, "demo / demo")
+
+    def test_login_page_shows_the_shunkan_logo(self):
+        response = self.client.get(reverse("login"))
+
+        self.assertContains(response, "shunkan-logo.png")
+        self.assertContains(response, 'alt="旬間 (SHUNKAN)"')
 
     def test_signup_creates_a_user_and_logs_in(self):
         response = self.client.post(
@@ -1055,6 +1090,39 @@ class TaskOwnerAccessTests(TestCase):
         self.assertEqual(response.status_code, 404)
         self.other_task.refresh_from_db()
         self.assertEqual(self.other_task.title, "他人のタスク")
+
+    def test_quick_create_adds_task_to_owned_room(self):
+        response = self.client.post(
+            reverse("task_quick_create", args=[self.owned_room.pk]),
+            {"title": "即席タスク", "due_date": ""},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        task = Task.objects.get(room=self.owned_room, title="即席タスク")
+        data = response.json()
+        self.assertEqual(data["id"], task.pk)
+        self.assertIn("即席タスク", data["label"])
+
+    def test_quick_create_rejects_due_date_outside_room_period(self):
+        response = self.client.post(
+            reverse("task_quick_create", args=[self.owned_room.pk]),
+            {
+                "title": "期間外タスク",
+                "due_date": (self.owned_room.ends_at + timedelta(days=1)).date().isoformat(),
+            },
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertFalse(Task.objects.filter(room=self.owned_room, title="期間外タスク").exists())
+
+    def test_quick_create_rejects_another_users_room(self):
+        response = self.client.post(
+            reverse("task_quick_create", args=[self.other_room.pk]),
+            {"title": "他人のRoomに追加", "due_date": ""},
+        )
+
+        self.assertEqual(response.status_code, 404)
+        self.assertFalse(Task.objects.filter(title="他人のRoomに追加").exists())
 
     def test_owner_can_delete_own_task(self):
         response = self.client.post(
@@ -1818,6 +1886,31 @@ class TaskModelTests(TestCase):
 
         with self.assertRaises(ValidationError):
             task.full_clean()
+
+    def test_form_validates_due_date_inside_the_room_period(self):
+        form = TaskForm(
+            {
+                "title": "期間内タスク",
+                "due_date": (timezone.now() + timedelta(days=2)).date(),
+                "category": "",
+            },
+            room=self.room,
+        )
+
+        self.assertTrue(form.is_valid(), form.errors.as_json())
+
+    def test_form_rejects_due_date_outside_the_room_period(self):
+        form = TaskForm(
+            {
+                "title": "期間外タスク",
+                "due_date": (self.room.ends_at + timedelta(days=1)).date(),
+                "category": "",
+            },
+            room=self.room,
+        )
+
+        self.assertFalse(form.is_valid())
+        self.assertIn("期限はRoom期間内で設定してください。", str(form.errors))
 
 
 class MomentLogModelTests(TestCase):
