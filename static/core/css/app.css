@@ -182,10 +182,32 @@ button { color: inherit; }
 .room-period-card p { margin: 6px 0 0; color: var(--muted); font-size: 12px; line-height: 1.6; }
 .room-period-card__dates { font-weight: 700; }
 .category-dot { width: 18px; height: 18px; border-radius: 50%; display: block; }
-.photo-section { display: grid; gap: 14px; padding-top: 6px; }
-.photo-section__heading h2, .photo-section__heading p { margin: 0; }
-.photo-section__heading p, .field__help { color: var(--muted); font-size: 12px; line-height: 1.6; }
-.photo-upload-card { display: grid; gap: 12px; padding: 14px; border: 1px solid var(--line); border-radius: 14px; background: var(--surface-cool); }
+.visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.photo-section { display: grid; gap: 14px; }
+.photo-section__heading { display: flex; align-items: start; justify-content: space-between; gap: 12px; }
+.photo-section__heading span { display: grid; gap: 3px; }
+.photo-section__heading small, .field__help { color: var(--muted); font-size: 11px; line-height: 1.6; }
+.photo-count { flex: 0 0 auto; color: var(--accent); font-size: 13px; }
+.photo-stage { min-height: 250px; display: grid; place-content: center; justify-items: center; gap: 7px; padding: 24px; border: 2px dashed #b9c9d6; border-radius: 20px; color: var(--muted); background: linear-gradient(155deg, #f8fbfd, var(--brand-blue-soft)); text-align: center; }
+.photo-stage > span { width: 68px; height: 68px; display: grid; place-items: center; border-radius: 50%; color: #fff; background: var(--accent); font-family: serif; font-size: 30px; }
+.photo-stage strong { margin-top: 5px; color: var(--text); }
+.photo-stage small { font-size: 11px; }
+.capture-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.capture-actions .camera-launch-button { min-height: 56px; grid-template-columns: auto 1fr; padding: 0 14px; text-align: center; }
+.capture-actions .secondary-button { min-height: 56px; padding-inline: 10px; }
+.photo-upload-list { display: grid; gap: 14px; }
+.photo-upload-card { display: grid; gap: 12px; padding: 12px; border: 1px solid var(--line); border-radius: 17px; background: var(--surface-cool); }
+.photo-preview-wrap { position: relative; }
+.photo-remove-button { position: absolute; top: 9px; right: 9px; width: 40px; height: 40px; border: 0; border-radius: 50%; color: #fff; background: rgba(7,27,42,.76); cursor: pointer; font-size: 22px; }
+.photo-add-button { min-height: 48px; }
+.capture-caption { padding-top: 4px; }
+.capture-details { border: 1px solid var(--line); border-radius: 16px; background: var(--surface-cool); }
+.capture-details summary { min-height: 64px; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 15px; cursor: pointer; list-style: none; }
+.capture-details summary::-webkit-details-marker { display: none; }
+.capture-details summary > span:first-child { display: grid; gap: 3px; }
+.capture-details summary small { color: var(--muted); font-size: 11px; }
+.capture-details[open] summary > span:last-child { transform: rotate(45deg); }
+.capture-details__body { display: grid; gap: 18px; padding: 2px 15px 15px; }
 .owned-form input, .owned-form select, .owned-form textarea { width: 100%; min-height: 52px; padding: 0 14px; border: 1px solid var(--line); border-radius: 14px; color: var(--text); background: #fff; }
 .owned-form textarea { min-height: 150px; padding-block: 14px; resize: vertical; }
 .card-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 14px; }

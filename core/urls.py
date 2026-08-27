@@ -39,6 +39,11 @@ urlpatterns = [
         views.task_delete,
         name="task_delete",
     ),
+    path(
+        "rooms/<int:room_id>/tasks/<int:task_id>/toggle/",
+        views.task_toggle,
+        name="task_toggle",
+    ),
     path("rooms/<int:room_id>/moments/", views.moment_list, name="moment_list"),
     path(
         "rooms/<int:room_id>/moments/new/",

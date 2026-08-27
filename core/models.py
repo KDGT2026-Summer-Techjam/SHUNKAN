@@ -3,6 +3,8 @@ from typing import ClassVar
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import models
+from django.db.models import F, Q
+from django.utils import timezone
 
 
 class Room(models.Model):
@@ -29,12 +31,38 @@ class Room(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    class Meta:
+        constraints: ClassVar[list[models.BaseConstraint]] = [
+            models.CheckConstraint(
+                condition=Q(ends_at__gt=F("starts_at")),
+                name="room_ends_after_starts",
+            ),
+            models.CheckConstraint(
+                condition=(
+                    Q(reflection_deadline_at__isnull=True)
+                    | Q(reflection_deadline_at__gte=F("ends_at"))
+                ),
+                name="room_reflection_deadline_after_end",
+            ),
+        ]
+
     def clean(self):
         super().clean()
 
         if self.ends_at <= self.starts_at:
             raise ValidationError(
                 {"ends_at": "終了日時は開始日時より後である必要があります。"}
+            )
+        if (
+            self.reflection_deadline_at is not None
+            and self.reflection_deadline_at < self.ends_at
+        ):
+            raise ValidationError(
+                {
+                    "reflection_deadline_at": (
+                        "振り返り期限はRoom終了日時以後に設定してください。"
+                    )
+                }
             )
 
     def __str__(self):
@@ -110,6 +138,25 @@ class Task(models.Model):
                 {"completed_at": "completed_at must be empty when the task is not completed."}
             )
 
+        if self.due_date is not None:
+            starts_on = timezone.localtime(self.room.starts_at).date()
+            ends_on = timezone.localtime(self.room.ends_at).date()
+            if not starts_on <= self.due_date <= ends_on:
+                raise ValidationError(
+                    {"due_date": "期限はRoom期間内で設定してください。"}
+                )
+
+    class Meta:
+        constraints: ClassVar[list[models.BaseConstraint]] = [
+            models.CheckConstraint(
+                condition=(
+                    Q(is_completed=True, completed_at__isnull=False)
+                    | Q(is_completed=False, completed_at__isnull=True)
+                ),
+                name="task_completion_timestamp_matches_status",
+            ),
+        ]
+
 class MomentLog(models.Model):
     objects = models.Manager()
 
@@ -146,6 +193,14 @@ class MomentLog(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    class Meta:
+        constraints: ClassVar[list[models.BaseConstraint]] = [
+            models.CheckConstraint(
+                condition=Q(entry_type__in=["moment", "reflection"]),
+                name="moment_log_entry_type_is_valid",
+            ),
+        ]
+
     def clean(self):
         super().clean()
 
@@ -158,6 +213,28 @@ class MomentLog(models.Model):
             raise ValidationError(
                 {"category": "Category must belong to the same Room."}
             )
+
+        if self.room_id and self.occurred_at:
+            room = self.room
+            if self.entry_type == self.EntryType.MOMENT:
+                if not room.starts_at <= self.occurred_at < room.ends_at:
+                    raise ValidationError(
+                        {"occurred_at": "通常のSHUNKAN-logはRoom期間内に設定してください。"}
+                    )
+            elif self.entry_type == self.EntryType.REFLECTION:
+                if (
+                    room.reflection_deadline_at is None
+                    or not room.ends_at
+                    <= self.occurred_at
+                    <= room.reflection_deadline_at
+                ):
+                    raise ValidationError(
+                        {
+                            "occurred_at": (
+                                "振り返りはRoom終了後から振り返り期限までに設定してください。"
+                            )
+                        }
+                    )
 
 class Photo(models.Model):
     objects = models.Manager()
@@ -179,3 +256,11 @@ class Photo(models.Model):
 
     class Meta:
         ordering: ClassVar[list[str]] = ["sort_order", "created_at"]
+
+    def clean(self):
+        super().clean()
+        if self.moment_log_id and self._state.adding:
+            if self.moment_log.photos.count() >= 3:
+                raise ValidationError(
+                    {"moment_log": "1件のSHUNKAN-logに保存できる写真は3枚までです。"}
+                )

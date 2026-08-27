@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 
+from django.core.exceptions import PermissionDenied
 from django.utils import timezone
 
 from .models import MomentLog, Room
@@ -10,6 +11,18 @@ class LogPostPermission:
     allowed: bool
     reason: str
     message: str
+
+
+def room_is_active(room: Room, now=None) -> bool:
+    """開催中Roomかどうかを、全画面で共通に判定する。"""
+    now = now or timezone.now()
+    return not room.is_archived and room.starts_at <= now < room.ends_at
+
+
+def require_active_room(room: Room, now=None) -> None:
+    """Roomを変更する操作の入口で、開催中以外を拒否する。"""
+    if not room_is_active(room, now=now):
+        raise PermissionDenied("開催中のRoomだけ変更できます。")
 
 
 def log_post_permission(
