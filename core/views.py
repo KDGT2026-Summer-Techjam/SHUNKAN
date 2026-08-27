@@ -48,6 +48,7 @@ def signup(request):
             return redirect("rooms")
     else:
         form = UserCreationForm()
+
     return render(request, "core/signup.html", {"form": form})
 
 
@@ -59,7 +60,7 @@ def rooms(request):
             room = form.save(commit=False)
             room.owner = request.user
             room.save()
-            return redirect("rooms")
+            return redirect("room_detail", room_id=room.pk)
     else:
         form = RoomForm()
 
@@ -272,6 +273,11 @@ def profile(request):
 def room_active(request):
     return redirect("rooms")
 
+    recent_logs = (
+        MomentLog.objects
+        .filter(room=room)
+        .order_by("-occurred_at", "-id")[:1]
+    )
 
 @login_required
 def room_ended(request):
@@ -287,6 +293,14 @@ def tasks(request):
 def moments_new(request):
     return redirect("rooms")
 
+@login_required
+def album(request, room_id):
+    room = get_object_or_404(Room, pk=room_id, owner=request.user)
+    return render(
+        request,
+        "core/album.html",
+        {"room": room, "now": timezone.now()},
+    )
 
 @login_required
 def album(request):

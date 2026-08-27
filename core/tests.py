@@ -7,6 +7,7 @@ from unittest.mock import Mock, patch
 from django import forms
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.core.management import call_command
 from django.test import TestCase, override_settings
 from django.urls import reverse
@@ -684,9 +685,14 @@ class AuthenticationViewTests(TestCase):
         )
 
         self.assertRedirects(response, reverse("rooms"))
+
         user = get_user_model().objects.get(username="new-user")
+
         self.assertTrue(user.check_password("safe-test-password-123"))
-        self.assertEqual(self.client.session.get("_auth_user_id"), str(user.pk))
+        self.assertEqual(
+            self.client.session.get("_auth_user_id"),
+            str(user.pk),
+        )
 
     def test_signup_shows_errors_without_creating_a_user(self):
         response = self.client.post(
@@ -719,7 +725,10 @@ class AuthenticationViewTests(TestCase):
     def test_login_redirects_to_rooms(self):
         response = self.client.post(
             reverse("login"),
-            {"username": self.user.username, "password": self.password},
+            {
+                "username": self.user.username,
+                "password": self.password,
+            },
             follow=True,
         )
 
@@ -733,24 +742,43 @@ class AuthenticationViewTests(TestCase):
     def test_anonymous_user_is_redirected_to_login(self):
         response = self.client.get(reverse("rooms"))
 
-        self.assertRedirects(response, f"{reverse('login')}?next={reverse('rooms')}")
+        self.assertRedirects(
+            response,
+            f"{reverse('login')}?next={reverse('rooms')}",
+        )
 
     def test_logout_prevents_reopening_protected_pages(self):
         room = Room.objects.create(
             owner=self.user,
             name="ログアウト確認用Room",
-            starts_at=timezone.make_aware(datetime(2026, 8, 20, 12, 0, 0)),
-            ends_at=timezone.make_aware(datetime(2026, 8, 30, 12, 0, 0)),
+            starts_at=timezone.make_aware(
+                datetime(2026, 8, 20, 12, 0, 0)
+            ),
+            ends_at=timezone.make_aware(
+                datetime(2026, 8, 30, 12, 0, 0)
+            ),
         )
+
         self.client.force_login(self.user)
 
-        response = self.client.post(reverse("logout"), follow=True)
+        response = self.client.post(
+            reverse("logout"),
+            follow=True,
+        )
 
         self.assertRedirects(response, reverse("login"))
-        for url in (reverse("rooms"), reverse("room_detail", args=[room.pk])):
+
+        for url in (
+            reverse("rooms"),
+            reverse("room_detail", args=[room.pk]),
+        ):
             with self.subTest(url=url):
                 response = self.client.get(url)
-                self.assertRedirects(response, f"{reverse('login')}?next={url}")
+
+                self.assertRedirects(
+                    response,
+                    f"{reverse('login')}?next={url}",
+                )
 
 
 class RoomViewTests(TestCase):
@@ -759,22 +787,34 @@ class RoomViewTests(TestCase):
             username="room-owner",
             password="test-password-123",
         )
+
         self.other_user = get_user_model().objects.create_user(
             username="other-user",
             password="test-password-123",
         )
+
         self.owner_room = Room.objects.create(
             owner=self.owner,
             name="自分のRoom",
-            starts_at=timezone.make_aware(datetime(2026, 8, 20, 12, 0, 0)),
-            ends_at=timezone.make_aware(datetime(2026, 8, 30, 12, 0, 0)),
+            starts_at=timezone.make_aware(
+                datetime(2026, 8, 20, 12, 0, 0)
+            ),
+            ends_at=timezone.make_aware(
+                datetime(2026, 8, 30, 12, 0, 0)
+            ),
         )
+
         self.other_room = Room.objects.create(
             owner=self.other_user,
             name="他人のRoom",
-            starts_at=timezone.make_aware(datetime(2026, 8, 20, 12, 0, 0)),
-            ends_at=timezone.make_aware(datetime(2026, 8, 30, 12, 0, 0)),
+            starts_at=timezone.make_aware(
+                datetime(2026, 8, 20, 12, 0, 0)
+            ),
+            ends_at=timezone.make_aware(
+                datetime(2026, 8, 30, 12, 0, 0)
+            ),
         )
+
         self.client.force_login(self.owner)
 
     def test_room_list_shows_only_rooms_owned_by_the_current_user(self):
@@ -834,12 +874,64 @@ class RoomViewTests(TestCase):
             },
         )
 
-        self.assertRedirects(response, reverse("rooms"))
         room = Room.objects.get(name="新しいRoom")
+
+        self.assertRedirects(
+            response,
+            reverse("room_detail", args=[room.pk]),
+        )
+
         self.assertEqual(room.owner, self.owner)
 
+    def test_room_creation_rejects_end_before_start(self):
+        response = self.client.post(
+            reverse("rooms"),
+            {
+                "name": "不正なRoom",
+                "starts_at": "2026-08-30T12:00",
+                "ends_at": "2026-08-20T12:00",
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+
+        self.assertContains(
+            response,
+            "終了日時は開始日時より後である必要があります。",
+        )
+
+        self.assertFalse(
+            Room.objects.filter(name="不正なRoom").exists()
+        )
+
+    def test_room_creation_rejects_same_start_and_end(self):
+        response = self.client.post(
+            reverse("rooms"),
+            {
+                "name": "同日時のRoom",
+                "starts_at": "2026-08-20T12:00",
+                "ends_at": "2026-08-20T12:00",
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+
+        self.assertContains(
+            response,
+            "終了日時は開始日時より後である必要があります。",
+        )
+
+        self.assertFalse(
+            Room.objects.filter(name="同日時のRoom").exists()
+        )
+
     def test_room_detail_rejects_another_users_room(self):
-        response = self.client.get(reverse("room_detail", args=[self.other_room.pk]))
+        response = self.client.get(
+            reverse(
+                "room_detail",
+                args=[self.other_room.pk],
+            )
+        )
 
         self.assertEqual(response.status_code, 404)
 
@@ -1169,6 +1261,7 @@ class SeedDemoCommandTests(TestCase):
         call_command("seed_demo")
 
         user = get_user_model().objects.get(username="demo")
+
         self.assertTrue(user.check_password("demo"))
 
 
@@ -1197,6 +1290,7 @@ class UiShellRouteTests(TestCase):
         ):
             with self.subTest(path=path):
                 response = self.client.get(path)
+
                 self.assertEqual(response.status_code, 200)
 
 
@@ -1211,7 +1305,12 @@ class UiShellRouteTests(TestCase):
         for path in ("/rooms/", f"/rooms/{self.room.pk}/tasks/", f"/rooms/{self.room.pk}/moments/new/"):
             with self.subTest(path=path):
                 response = self.client.get(path)
-                self.assertContains(response, "csrfmiddlewaretoken")
+
+                self.assertContains(
+                    response,
+                    "csrfmiddlewaretoken",
+                )
+
 
 class RoomModelTests(TestCase):
     def setUp(self):
@@ -1223,6 +1322,7 @@ class RoomModelTests(TestCase):
         self.starts_at = timezone.make_aware(
             datetime(2026, 8, 20, 12, 0, 0)
         )
+
         self.ends_at = self.starts_at + timedelta(days=10)
 
     def test_room_can_be_created(self):
@@ -1262,7 +1362,9 @@ class RoomModelTests(TestCase):
 
         self.user.delete()
 
-        self.assertFalse(Room.objects.filter(pk=room.pk).exists())
+        self.assertFalse(
+            Room.objects.filter(pk=room.pk).exists()
+        )
 
     def test_reflection_deadline_is_optional(self):
         room = Room(
@@ -1277,6 +1379,7 @@ class RoomModelTests(TestCase):
 
         self.assertIsNone(room.reflection_deadline_at)
 
+
 class CategoryModelTests(TestCase):
     def setUp(self):
         self.user = get_user_model().objects.create_user(
@@ -1287,6 +1390,7 @@ class CategoryModelTests(TestCase):
         self.starts_at = timezone.make_aware(
             datetime(2026, 8, 20, 12, 0, 0)
         )
+
         self.ends_at = self.starts_at + timedelta(days=10)
 
         self.room = Room.objects.create(
@@ -1339,6 +1443,7 @@ class CategoryModelTests(TestCase):
 
         self.assertEqual(category.name, "花火")
         self.assertEqual(category.room, another_room)
+
 
 class TaskModelTests(TestCase):
     def setUp(self):
@@ -1405,6 +1510,7 @@ class TaskModelTests(TestCase):
         with self.assertRaises(ValidationError):
             task.full_clean()
 
+
 class MomentLogModelTests(TestCase):
     def setUp(self):
         self.user = get_user_model().objects.create_user(
@@ -1462,8 +1568,15 @@ class MomentLogModelTests(TestCase):
         log.full_clean()
         log.save()
 
-        self.assertEqual(log.entry_type, MomentLog.EntryType.MOMENT)
-        self.assertEqual(log.occurred_at, occurred_at)
+        self.assertEqual(
+            log.entry_type,
+            MomentLog.EntryType.MOMENT,
+        )
+
+        self.assertEqual(
+            log.occurred_at,
+            occurred_at,
+        )
 
     def test_task_from_another_room_is_invalid(self):
         log = MomentLog(
@@ -1497,12 +1610,18 @@ class MomentLogModelTests(TestCase):
         )
 
         edited = self.room.starts_at + timedelta(days=2)
+
         log.occurred_at = edited
         log.full_clean()
         log.save()
 
         log.refresh_from_db()
-        self.assertEqual(log.occurred_at, edited)
+
+        self.assertEqual(
+            log.occurred_at,
+            edited,
+        )
+
 
 class PhotoModelTests(TestCase):
     def setUp(self):
@@ -1540,9 +1659,20 @@ class PhotoModelTests(TestCase):
             sort_order=0,
         )
 
-        self.assertEqual(photo.moment_log, self.moment_log)
-        self.assertEqual(photo.caption, "夏の花火")
-        self.assertEqual(photo.sort_order, 0)
+        self.assertEqual(
+            photo.moment_log,
+            self.moment_log,
+        )
+
+        self.assertEqual(
+            photo.caption,
+            "夏の花火",
+        )
+
+        self.assertEqual(
+            photo.sort_order,
+            0,
+        )
 
     def test_photo_belongs_to_room_through_moment_log(self):
         image = SimpleUploadedFile(
@@ -1556,4 +1686,7 @@ class PhotoModelTests(TestCase):
             image=image,
         )
 
-        self.assertEqual(photo.moment_log.room, self.room)
+        self.assertEqual(
+            photo.moment_log.room,
+            self.room,
+        )
