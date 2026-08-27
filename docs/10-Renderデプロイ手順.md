@@ -43,6 +43,50 @@ DJANGO_CSRF_TRUSTED_ORIGINS=https://app.example.com
 
 実際のURL・パスワード・接続文字列は、Git、Issue、チャットに記録しない。
 
+## Render上でデモデータを投入する
+
+デプロイ後にRoomやTaskの確認用データを作る場合は、`seed_demo`を本番サービスの実行環境で1回だけ実行する。`seed_demo`は本番PostgreSQLへデモユーザー、Room、Task、SHUNKAN-logを書き込むため、発表・画面確認など、投入先を明確にした場合だけ使う。
+
+### 事前設定
+
+Render Dashboardで対象Web Serviceの **Environment** を開き、次の環境変数を追加する。
+
+| 変数 | 値 | 用途 |
+| --- | --- | --- |
+| `DEMO_USER_PASSWORD` | Render上だけで管理するデモ用パスワード | `demo`ユーザーのログイン用 |
+
+`DJANGO_DEBUG`や`DEBUG`を`true`に変更してはいけない。本番の`DEBUG=False`でも`DEMO_USER_PASSWORD`があれば実行できる。パスワードはGit、Issue、チャット、スクリーンショットに記録しない。
+
+### 有料Web Serviceの場合
+
+1. 環境変数を保存して、デプロイが成功するまで待つ。
+2. Web Serviceの **Shell** を開く。
+3. 次を実行する。
+
+```bash
+python manage.py seed_demo
+```
+
+4. `デモデータを投入しました。`と表示されたら、`/accounts/login/`へアクセスする。
+5. ユーザー名`demo`と、`DEMO_USER_PASSWORD`に設定した値でログインする。
+
+### 無料Web Serviceの場合
+
+無料Web ServiceではDashboardのShellを利用できないため、Render CLIのOne-Off Jobを使う。Render CLIへのログインと、対象サービスのIDが必要である。
+
+```bash
+render jobs create <service-id> --start-command "python manage.py seed_demo"
+```
+
+One-Off Jobは対象サービスの最新ビルドと設定済み環境変数を使う。実行ログで`デモデータを投入しました。`を確認してから、`/accounts/login/`で`demo`ユーザーを使う。One-Off Jobには実行時間に応じた料金が発生する場合がある。
+
+### 実行後の注意
+
+- `seed_demo`を`render.yaml`の`startCommand`や`preDeployCommand`へ追加しない。デプロイのたびにデモデータが更新されるためである。
+- 再実行すると`demo`ユーザーのパスワードや、名前が一致するデモデータが更新される。
+- `seed_demo`は写真ファイルを作成しない。本番では`ALLOW_PHOTO_UPLOADS=false`のため、写真の確認はローカル環境で行う。
+- 確認が終わったら、Render上の`DEMO_USER_PASSWORD`を削除またはローテーションする。ただし、環境変数を削除しても既に作成された`demo`ユーザーは削除されない。
+
 ## PostgreSQL認証情報が流出した場合のローテーション
 
 接続文字列をチャット、Issue、ログ等へ貼った場合は、削除だけではなく直ちに失効させる。
