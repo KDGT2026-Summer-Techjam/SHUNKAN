@@ -8,14 +8,22 @@
   };
 
   document.querySelectorAll("[data-photo-input]").forEach((input) => {
+    const card = input.closest("[data-photo-card]");
+    const capturedAtInput = card?.querySelector("[data-captured-at]");
+    const sourceInput = card?.querySelector("[data-captured-at-source]");
+
+    capturedAtInput?.addEventListener("input", () => {
+      sourceInput.value = capturedAtInput.value ? "manual" : "unknown";
+    });
+
     input.addEventListener("change", async () => {
       const card = input.closest("[data-photo-card]");
       const capturedAtInput = card?.querySelector("[data-captured-at]");
-      const exifHidden = card?.querySelector("[data-exif-captured-at]");
-      if (!capturedAtInput || !exifHidden) return;
+      const sourceInput = card?.querySelector("[data-captured-at-source]");
+      if (!capturedAtInput || !sourceInput) return;
 
-      exifHidden.value = "";
-      if (capturedAtInput.value) capturedAtInput.value = "";
+      capturedAtInput.value = "";
+      sourceInput.value = "unknown";
 
       const file = input.files[0];
       if (!file) return;
@@ -38,11 +46,8 @@
         );
         if (Number.isNaN(date.getTime())) return;
         const value = toDatetimeLocal(date);
-        exifHidden.value = value;
-        if (!capturedAtInput.value) {
-          capturedAtInput.value = value;
-          capturedAtInput.dataset.exifPrefilled = "1";
-        }
+        capturedAtInput.value = value;
+        sourceInput.value = "exif";
       } catch (_) {
         // EXIFが読めなくても写真のアップロード自体は続行する。
       }

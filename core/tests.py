@@ -243,8 +243,8 @@ class MomentImageUploadTests(TestCase):
             {
                 "body": "EXIFの写真",
                 "images": self.make_exif_jpeg(),
-                "exif_captured_at": ["2026-08-20T15:30"],
-                "captured_at": [""],
+                "captured_at": ["2026-08-20T15:30"],
+                "captured_at_source": ["exif"],
             },
         )
 
@@ -261,6 +261,7 @@ class MomentImageUploadTests(TestCase):
                 "body": "手入力の写真",
                 "images": self.make_jpeg(),
                 "captured_at": ["2026-08-21T09:15"],
+                "captured_at_source": ["manual"],
             },
         )
 
@@ -270,6 +271,37 @@ class MomentImageUploadTests(TestCase):
         local_captured = timezone.localtime(photo.captured_at)
         self.assertEqual(local_captured.hour, 9)
         self.assertEqual(local_captured.minute, 15)
+
+    def test_photo_saves_unknown_when_exif_candidate_is_removed(self):
+        response = self.client.post(
+            reverse("room_moments_new", args=[self.room.pk]),
+            {
+                "body": "EXIF候補を削除した写真",
+                "images": self.make_exif_jpeg(),
+                "captured_at": [""],
+                "captured_at_source": ["unknown"],
+            },
+        )
+
+        self.assertRedirects(response, reverse("room_album", args=[self.room.pk]))
+        photo = Photo.objects.get(moment_log__room=self.room)
+        self.assertEqual(photo.captured_at_source, Photo.CapturedAtSource.UNKNOWN)
+        self.assertIsNone(photo.captured_at)
+
+    def test_invalid_captured_at_is_shown_as_form_error(self):
+        response = self.client.post(
+            reverse("room_moments_new", args=[self.room.pk]),
+            {
+                "body": "不正日時の写真",
+                "images": self.make_jpeg(),
+                "captured_at": ["not-a-date"],
+                "captured_at_source": ["manual"],
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "撮影日時を確認してください。")
+        self.assertFalse(Photo.objects.filter(moment_log__room=self.room).exists())
 
     def test_photo_saves_unknown_when_no_datetime_is_given(self):
         response = self.client.post(
