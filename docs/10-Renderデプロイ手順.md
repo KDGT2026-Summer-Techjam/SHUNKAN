@@ -9,6 +9,7 @@
 - 静的ファイルを収集して配信する設定
 - Render内のPostgreSQL接続文字列を`DATABASE_URL`としてWeb Serviceへ渡す設定
 - 本番用のランダムな`DJANGO_SECRET_KEY`
+- DB接続を確認する`/healthz/`
 - Gitの接続先ブランチへpushしたときの自動デプロイ
 
 `render.yaml`の初期設定は無料プランである。無料Web Serviceは一定時間アクセスがないと休止し、無料PostgreSQLには有効期限がある。継続公開や発表当日の利用では、Renderのダッシュボードで各プランを確認して切り替える。
@@ -18,7 +19,7 @@
 1. この変更をGitHubのデプロイ対象ブランチへpushする。
 2. RenderでGitHubを接続し、**New +** → **Blueprint** を選ぶ。
 3. `SHUNKAN`リポジトリとデプロイ対象ブランチを選び、`render.yaml`を読み込む。
-4. 内容を確認してApplyする。ビルドでは依存関係のインストールと静的ファイル収集を行い、デプロイ前コマンド（`preDeployCommand`）でmigrationを行う。
+4. 内容を確認してApplyする。無料Web Serviceでは`preDeployCommand`を利用できないため、ビルドでは依存関係のインストールと静的ファイル収集だけを行い、`startCommand`のGunicorn起動前に`python manage.py migrate --noinput`を1回実行する。migrationが失敗した場合はWeb Serviceを起動しない。
 5. デプロイ完了後、`https://<service-name>.onrender.com/healthz/`が`{"status": "ok"}`を返すことと、`https://<service-name>.onrender.com/accounts/login/`にログイン画面が表示されることを確認する。
 
 ## 環境変数
