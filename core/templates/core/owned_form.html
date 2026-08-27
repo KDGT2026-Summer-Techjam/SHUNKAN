@@ -1,0 +1,28 @@
+{% extends "core/base.html" %}
+{% block title %}{{ heading }} | 旬間 (SHUNKAN){% endblock %}
+{% block screen_class %}screen--with-nav{% endblock %}
+{% block content %}
+<header class="page-header">
+  <p class="page-header__eyebrow">{{ room.name }}</p>
+  <h1>{{ heading }}</h1>
+  <p>内容を確認して保存してください。</p>
+</header>
+<form class="form-stack form-card owned-form" method="post">
+  {% csrf_token %}
+  {% if form.non_field_errors %}<div class="form-error form-error--block" role="alert">{{ form.non_field_errors }}</div>{% endif %}
+  {% for field in form %}
+  <div class="field">
+    <label class="field__label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+    {{ field }}
+    {% if field.help_text %}<span class="field__help">{{ field.help_text }}</span>{% endif %}
+    {% if field.errors %}<span class="form-error" role="alert">{{ field.errors|striptags }}</span>{% endif %}
+  </div>
+  {% endfor %}
+  <button class="primary-button" type="submit">変更を保存する</button>
+  {% if form_kind == 'room' %}<a class="secondary-button" href="{% url 'room_detail' room.pk %}">キャンセル</a>
+  {% elif form_kind == 'task' %}<a class="secondary-button" href="{% url 'room_tasks' room.pk %}">キャンセル</a>
+  {% elif form_kind == 'category' %}<a class="secondary-button" href="{% url 'room_categories' room.pk %}">キャンセル</a>
+  {% else %}<a class="secondary-button" href="{% url 'room_album' room.pk %}">キャンセル</a>{% endif %}
+</form>
+{% endblock %}
+{% block navigation %}{% include "core/includes/bottom_nav.html" %}{% endblock %}

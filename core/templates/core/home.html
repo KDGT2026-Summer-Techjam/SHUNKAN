@@ -1,27 +1,4 @@
-{% load static %}
-<!doctype html>
-<html lang="ja">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>旬間 (SHUNKAN) | デモログイン</title>
-  <link rel="stylesheet" href="{% static 'core/css/v8-ui.css' %}">
-</head>
-<body>
-  <main class="app centered">
-    {% include "core/includes/auth_header.html" %}
-    <div class="brand-mark" aria-hidden="true">旬</div>
-    <p class="eyebrow">旬間 (SHUNKAN)</p>
-    <h1>今だけの時間を、<br>ちゃんと残そう。</h1>
-    <p class="lead">やりたいこと、できたこと、いまの気持ちを、期限のあるRoomに残す個人用アプリです。</p>
-    <section class="section card" aria-labelledby="demo-login-title">
-      <h2 id="demo-login-title">ログインしてはじめる</h2>
-      <p class="note">静的プロトタイプでは認証しません。Djangoではユーザー登録・ログイン後、自分のRoomだけを表示します。</p>
-      <div class="button-stack">
-        <a class="button" href="{% url 'rooms' %}">ログイン（画面確認）</a>
-        <button class="button--secondary" type="button" disabled>ユーザー登録</button>
-      </div>
-    </section>
-  </main>
-</body>
-</html>
+{% extends "core/base.html" %}
+{% block title %}旬間 (SHUNKAN){% endblock %}
+{% block screen_class %}screen--auth{% endblock %}
+{% block content %}<section class="auth-panel"><div class="brand brand--large"><div class="brand__jp">旬間<span>。</span></div><div class="brand__en">SHUNKAN</div></div><h1>今だけの時間を、ちゃんと残そう。</h1><p>期限のあるRoomに、やりたいことと今できたことを残す個人用アプリです。</p><a class="primary-button primary-button--accent" href="{% url 'login' %}">はじめる</a></section>{% endblock %}

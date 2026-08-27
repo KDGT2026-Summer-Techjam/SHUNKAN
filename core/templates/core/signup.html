@@ -1,48 +1,19 @@
-{% load static %}
-<!doctype html>
-<html lang="ja">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>旬間 (SHUNKAN) | 新規登録</title>
-  <link rel="stylesheet" href="{% static 'core/css/v8-ui.css' %}">
-</head>
-<body>
-  <main class="app centered">
-    {% include "core/includes/auth_header.html" %}
-    <div class="brand-mark" aria-hidden="true">旬</div>
-    <p class="eyebrow">旬間 (SHUNKAN)</p>
-    <h1>今だけの時間を、<br>はじめよう。</h1>
-    <p class="lead">自分だけのRoomを作り、やりたいことと今の瞬間を残します。</p>
-
-    <section class="section card" aria-labelledby="signup-title">
-      <h2 id="signup-title">新規登録</h2>
-      <form class="form-card" method="post">
-        {% csrf_token %}
-        {% if form.non_field_errors %}
-          <div class="notice" role="alert">{{ form.non_field_errors }}</div>
-        {% endif %}
-        <div class="field">
-          <label for="{{ form.username.id_for_label }}">ユーザー名</label>
-          {{ form.username }}
-          {% if form.username.help_text %}<p class="field-note">{{ form.username.help_text }}</p>{% endif %}
-          {% if form.username.errors %}<p class="field-note" role="alert">{{ form.username.errors|striptags }}</p>{% endif %}
-        </div>
-        <div class="field">
-          <label for="{{ form.password1.id_for_label }}">パスワード</label>
-          {{ form.password1 }}
-          {% if form.password1.help_text %}<p class="field-note">{{ form.password1.help_text|striptags }}</p>{% endif %}
-          {% if form.password1.errors %}<p class="field-note" role="alert">{{ form.password1.errors|striptags }}</p>{% endif %}
-        </div>
-        <div class="field">
-          <label for="{{ form.password2.id_for_label }}">パスワード（確認）</label>
-          {{ form.password2 }}
-          {% if form.password2.errors %}<p class="field-note" role="alert">{{ form.password2.errors|striptags }}</p>{% endif %}
-        </div>
-        <button class="button" type="submit">登録してRoomを作る</button>
-      </form>
-      <p class="field-note">すでにアカウントがある場合は、<a href="{% url 'login' %}">ログイン</a>してください。</p>
-    </section>
-  </main>
-</body>
-</html>
+{% extends "core/base.html" %}
+{% block title %}新規登録 | 旬間 (SHUNKAN){% endblock %}
+{% block screen_class %}screen--auth{% endblock %}
+{% block content %}
+<section class="auth-panel" aria-labelledby="signup-title">
+  <div class="brand brand--compact"><div class="brand__jp">旬間<span>。</span></div><div class="brand__en">SHUNKAN</div></div>
+  <h1 id="signup-title">新規登録</h1>
+  <p>自分だけのRoomを作り、今だけの時間を残します。</p>
+  <form class="form-stack" method="post">
+    {% csrf_token %}
+    {% if form.non_field_errors %}<div class="form-error form-error--block" role="alert">{{ form.non_field_errors }}</div>{% endif %}
+    <div class="field"><label class="field__label" for="{{ form.username.id_for_label }}">ユーザー名</label>{{ form.username }}{% if form.username.errors %}<span class="form-error" role="alert">{{ form.username.errors|striptags }}</span>{% endif %}</div>
+    <div class="field"><label class="field__label" for="{{ form.password1.id_for_label }}">パスワード</label>{{ form.password1 }}{% if form.password1.errors %}<span class="form-error" role="alert">{{ form.password1.errors|striptags }}</span>{% endif %}</div>
+    <div class="field"><label class="field__label" for="{{ form.password2.id_for_label }}">パスワード（確認）</label>{{ form.password2 }}{% if form.password2.errors %}<span class="form-error" role="alert">{{ form.password2.errors|striptags }}</span>{% endif %}</div>
+    <button class="primary-button" type="submit">登録してはじめる</button>
+  </form>
+  <p class="auth-switch">アカウントがある場合 <a href="{% url 'login' %}">ログイン</a></p>
+</section>
+{% endblock %}

@@ -1,0 +1,50 @@
+{% load static %}
+<nav class="bottom-nav" aria-label="メインナビゲーション">
+  {% if room %}
+    <a class="bottom-nav__item" href="{% url 'rooms' %}" {% if active_nav == 'room' %}aria-current="page"{% endif %}>
+      <img class="bottom-nav__icon" src="{% static 'core/images/nav-room.svg' %}" alt="">
+      <span>Room</span>
+    </a>
+    <a class="bottom-nav__item" href="{% url 'room_tasks' room.pk %}" {% if active_nav == 'tasks' %}aria-current="page"{% endif %}>
+      <img class="bottom-nav__icon" src="{% static 'core/images/nav-task.svg' %}" alt="">
+      <span>タスク</span>
+    </a>
+    {% if not room_is_active %}
+      <span class="bottom-nav__capture bottom-nav__capture--disabled" aria-label="撮影（開催期間外）"><span class="capture-mark">旬</span><span>期間外</span></span>
+    {% else %}
+      <a class="bottom-nav__capture" href="{% url 'room_moments_new' room.pk %}" {% if active_nav == 'capture' %}aria-current="page"{% endif %}><span class="capture-mark">旬</span><span>撮影</span></a>
+    {% endif %}
+    <a class="bottom-nav__item" href="{% url 'room_album' room.pk %}" {% if active_nav == 'album' %}aria-current="page"{% endif %}>
+      <img class="bottom-nav__icon" src="{% static 'core/images/nav-album.svg' %}" alt="">
+      <span>アルバム</span>
+    </a>
+  {% else %}
+    <a class="bottom-nav__item" href="{% url 'rooms' %}" {% if active_nav == 'rooms' %}aria-current="page"{% endif %}>
+      <img class="bottom-nav__icon" src="{% static 'core/images/nav-room.svg' %}" alt="">
+      <span>Room</span>
+    </a>
+    <button class="bottom-nav__item bottom-nav__prompt" type="button" data-room-required="タスク">
+      <img class="bottom-nav__icon" src="{% static 'core/images/nav-task.svg' %}" alt="">
+      <span>タスク</span>
+    </button>
+    <button class="bottom-nav__capture bottom-nav__prompt" type="button" data-room-required="撮影"><span class="capture-mark">旬</span><span>撮影</span></button>
+    <button class="bottom-nav__item bottom-nav__prompt" type="button" data-room-required="アルバム">
+      <img class="bottom-nav__icon" src="{% static 'core/images/nav-album.svg' %}" alt="">
+      <span>アルバム</span>
+    </button>
+  {% endif %}
+  <a class="bottom-nav__item" href="{% url 'profile' %}" {% if active_nav == 'profile' %}aria-current="page"{% endif %}>
+    <img class="bottom-nav__icon" src="{% static 'core/images/nav-account.svg' %}" alt="">
+    <span>アカウント</span>
+  </a>
+</nav>
+{% if not room %}
+<dialog class="room-required-dialog" data-room-dialog>
+  <div class="room-required-dialog__mark" aria-hidden="true">旬</div>
+  <h2>先にRoomを選びましょう</h2>
+  <p><span data-room-action>この機能</span>は、記録を残すRoomを選んでから使えます。</p>
+  <a class="primary-button" href="{% url 'rooms' %}">Roomを選ぶ</a>
+  <button class="secondary-button" type="button" data-room-dialog-close>あとで</button>
+</dialog>
+<script src="{% static 'core/js/room-required-dialog.js' %}" defer></script>
+{% endif %}

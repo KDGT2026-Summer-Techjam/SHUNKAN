@@ -1,9 +1,18 @@
+from typing import ClassVar
+
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import models
 
 
 class Room(models.Model):
+    objects = models.Manager()
+
+    task_count: int
+    completed_count: int
+    progress_percent: int
+    ui_status: str
+
     owner = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
@@ -32,6 +41,8 @@ class Room(models.Model):
         return self.name
 
 class Category(models.Model):
+    objects = models.Manager()
+
     room = models.ForeignKey(
         Room,
         on_delete=models.CASCADE,
@@ -42,18 +53,20 @@ class Category(models.Model):
     sort_order = models.PositiveIntegerField(default=0)
 
     class Meta:
-        constraints = [
+        constraints: ClassVar[list[models.BaseConstraint]] = [
             models.UniqueConstraint(
                 fields=["room", "name"],
                 name="unique_category_name_per_room",
             ),
         ]
-        ordering = ["sort_order", "id"]
+        ordering: ClassVar[list[str]] = ["sort_order", "id"]
 
     def __str__(self):
         return self.name
 
 class Task(models.Model):
+    objects = models.Manager()
+
     room = models.ForeignKey(
         Room,
         on_delete=models.CASCADE,
@@ -82,7 +95,7 @@ class Task(models.Model):
     def clean(self):
         super().clean()
 
-        if self.category_id and self.category.room_id != self.room_id:
+        if self.category is not None and self.category.room_id != self.room_id:
             raise ValidationError(
                 {"category": "Category must belong to the same Room."}
             )
@@ -98,6 +111,8 @@ class Task(models.Model):
             )
 
 class MomentLog(models.Model):
+    objects = models.Manager()
+
     class EntryType(models.TextChoices):
         MOMENT = "moment", "moment"
         REFLECTION = "reflection", "reflection"
@@ -134,17 +149,19 @@ class MomentLog(models.Model):
     def clean(self):
         super().clean()
 
-        if self.task_id and self.task.room_id != self.room_id:
+        if self.task is not None and self.task.room_id != self.room_id:
             raise ValidationError(
                 {"task": "Task must belong to the same Room."}
             )
 
-        if self.category_id and self.category.room_id != self.room_id:
+        if self.category is not None and self.category.room_id != self.room_id:
             raise ValidationError(
                 {"category": "Category must belong to the same Room."}
             )
-        
+
 class Photo(models.Model):
+    objects = models.Manager()
+
     moment_log = models.ForeignKey(
         MomentLog,
         on_delete=models.CASCADE,
@@ -161,6 +178,4 @@ class Photo(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        ordering = ["sort_order", "created_at"]
-        
-    
+        ordering: ClassVar[list[str]] = ["sort_order", "created_at"]
