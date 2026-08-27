@@ -9,7 +9,14 @@
   <strong class="countdown-card__value" data-countdown="{{ room.ends_at|date:'c' }}">00日 00:00:00</strong>
   <p class="countdown-card__date">{{ room.ends_at|date:"Y年n月j日 H:i" }}まで</p>
 </section>
-{% if room_is_active %}<a class="primary-button primary-button--accent hero-cta" href="{% url 'room_moments_new' room.pk %}">今を残す</a>{% else %}<p class="readonly-notice">現在は記録を追加できません。開催中に残した瞬間はアルバムでいつでも見返せます。</p>{% endif %}
+{% if room_is_active %}
+<a class="primary-button primary-button--accent hero-cta" href="{% url 'room_moments_new' room.pk %}">今を残す</a>
+{% elif can_post_reflection %}
+<a class="primary-button primary-button--accent hero-cta" href="{% url 'room_moments_new' room.pk %}">振り返りを残す</a>
+<p class="field__help">振り返りは {{ room.reflection_deadline_at|date:"Y年n月j日 H:i" }} まで投稿できます。</p>
+{% else %}
+<p class="readonly-notice">現在は記録を追加できません。開催中に残した瞬間はアルバムでいつでも見返せます。</p>
+{% endif %}
 <section class="section" aria-labelledby="progress-title"><div class="section-heading"><h2 id="progress-title">今の進捗</h2><strong>{{ completed_count }}/{{ task_count }}</strong></div><div class="progress"><div class="progress__track"><span style="width:{{ progress_percent }}%"></span></div></div></section>
 <div class="dashboard-grid">
   <section class="summary-card"><span class="summary-card__label">NEXT TASK</span>{% if next_task %}<h2>{{ next_task.title }}</h2><p>{% if next_task.due_date %}{{ next_task.due_date|date:"n月j日" }}まで{% else %}期限なし{% endif %}</p>{% else %}<h2>次のタスクはありません</h2><p>やりたいことを追加して、今を動かそう。</p>{% endif %}</section>

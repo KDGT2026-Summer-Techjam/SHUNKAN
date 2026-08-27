@@ -1,3 +1,4 @@
+from datetime import timedelta
 from typing import ClassVar, cast
 
 from django import forms
@@ -19,6 +20,8 @@ class TaskChoiceField(forms.ModelChoiceField):
 
 
 class RoomForm(forms.ModelForm):
+    REFLECTION_WINDOW = timedelta(days=7)
+
     class Meta:
         model = Room
         fields: ClassVar[list[str]] = ["name", "starts_at", "ends_at"]
@@ -40,6 +43,13 @@ class RoomForm(forms.ModelForm):
                 attrs={"class": "field__input", "type": "datetime-local"},
             ),
         }
+
+    def clean(self):
+        cleaned_data = super().clean()
+        ends_at = cleaned_data.get("ends_at")
+        if ends_at is not None:
+            self.instance.reflection_deadline_at = ends_at + self.REFLECTION_WINDOW
+        return cleaned_data
 
 
 class TaskUpdateForm(forms.ModelForm):

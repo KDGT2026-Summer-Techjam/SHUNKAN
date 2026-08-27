@@ -5,12 +5,15 @@
 {% block content %}
 <header class="page-header page-header--center">
   <p class="page-header__eyebrow">{{ room.name }}</p>
-  <h1>今を残す</h1>
-  <p>写真から、この瞬間を残そう</p>
+  <h1>{% if can_post_reflection and not can_post_moment %}振り返りを残す{% else %}今を残す{% endif %}</h1>
+  <p>{% if can_post_reflection and not can_post_moment %}このRoomでできたことや感じたことを残そう{% else %}写真から、この瞬間を残そう{% endif %}</p>
 </header>
+{% if can_post_moment or can_post_reflection %}
 <form class="form-stack form-card capture-form" method="post" enctype="multipart/form-data" data-capture-form>
   {% csrf_token %}
+  <input type="hidden" name="entry_type" value="{% if can_post_reflection and not can_post_moment %}reflection{% else %}moment{% endif %}">
   {% if form.non_field_errors %}<div class="form-error form-error--block" role="alert">{{ form.non_field_errors }}</div>{% endif %}
+  {% if can_post_moment %}
   <section class="photo-section" aria-labelledby="photo-title">
     <div class="photo-section__heading">
       <span><strong id="photo-title">写真</strong><small>JPEG / PNG / WebP / GIF、1枚10MBまで</small></span>
@@ -39,7 +42,9 @@
       <div class="readonly-notice" role="status"><strong>写真アップロードは一時停止中です</strong><br>安全な外部ストレージの準備が完了するまで、SHUNKAN-logのみ保存できます。</div>
     {% endif %}
   </section>
-  <div class="field capture-caption"><label class="field__label" for="{{ form.body.id_for_label }}">この瞬間へのひとこと</label>{{ form.body }}{% if form.body.errors %}<span class="form-error">{{ form.body.errors|striptags }}</span>{% endif %}</div>
+  {% endif %}
+  <div class="field capture-caption"><label class="field__label" for="{{ form.body.id_for_label }}">{% if can_post_reflection and not can_post_moment %}振り返りのひとこと{% else %}この瞬間へのひとこと{% endif %}</label>{{ form.body }}{% if form.body.errors %}<span class="form-error">{{ form.body.errors|striptags }}</span>{% endif %}</div>
+  {% if can_post_moment %}
   <details class="capture-details" {% if form.errors or request.POST.task or request.POST.category %}open{% endif %}>
     <summary><span><strong>記録を詳しく残す</strong><small>Task・カテゴリなどを追加</small></span><span aria-hidden="true">＋</span></summary>
     <div class="capture-details__body">
@@ -52,10 +57,15 @@
       <div class="field"><label class="field__label" for="{{ form.category.id_for_label }}">カテゴリ</label>{{ form.category }}{% if form.category.errors %}<span class="form-error">{{ form.category.errors|striptags }}</span>{% endif %}</div>
     </div>
   </details>
-  <button class="primary-button primary-button--accent" type="submit">この瞬間を保存する</button>
+  {% endif %}
+  <button class="primary-button primary-button--accent" type="submit">{% if can_post_reflection and not can_post_moment %}振り返りを保存する{% else %}この瞬間を保存する{% endif %}</button>
   <a class="secondary-button" href="{% url 'room_detail' room.pk %}">キャンセル</a>
 </form>
-{% if photo_uploads_enabled %}
+{% else %}
+<p class="readonly-notice">{{ reflection_permission.message }} このRoomは閲覧専用です。</p>
+<a class="secondary-button page-back-button" href="{% url 'room_album' room.pk %}">アルバムを見る</a>
+{% endif %}
+{% if photo_uploads_enabled and can_post_moment %}
 <dialog class="camera-dialog" data-camera-dialog>
   <header class="camera-dialog__header"><span class="camera-dialog__title"><strong>写真を撮る</strong><small>カメラの使用を許可してください</small></span><button type="button" data-camera-close aria-label="カメラを閉じる">×</button></header>
   <video data-camera-video autoplay playsinline muted></video>
