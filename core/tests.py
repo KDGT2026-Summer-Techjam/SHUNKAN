@@ -221,13 +221,27 @@ class MomentImageUploadTests(TestCase):
             302,
             response.context["form"].errors.as_json() if response.context else "",
         )
-        self.assertRedirects(response, reverse("room_album", args=[self.room.pk]))
+        self.assertRedirects(
+            response,
+            reverse("room_album", args=[self.room.pk]),
+            fetch_redirect_response=False,
+        )
         task.refresh_from_db()
         self.assertTrue(task.is_completed)
         self.assertIsNotNone(task.completed_at)
         moment = MomentLog.objects.get(task=task)
         self.assertEqual(moment.occurred_at, task.completed_at)
         self.assertEqual(moment.photos.count(), 1)
+        self.assertEqual(
+            self.client.session.get("achievement_message"),
+            "写真で完了するタスク を達成！",
+        )
+
+        album_response = self.client.get(reverse("room_album", args=[self.room.pk]))
+
+        self.assertContains(album_response, 'data-achievement-autoplay')
+        self.assertContains(album_response, "写真で完了するタスク を達成！")
+        self.assertIsNone(self.client.session.get("achievement_message"))
 
     def test_completed_task_photo_flow_preserves_completion_and_creates_nothing(self):
         completed_at = timezone.now() - timedelta(minutes=10)
