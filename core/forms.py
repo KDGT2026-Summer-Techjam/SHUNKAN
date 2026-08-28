@@ -138,7 +138,9 @@ class CategoryForm(forms.ModelForm):
         self.instance.room = room
 
     def clean_name(self):
-        name = self.cleaned_data["name"]
+        name = self.cleaned_data["name"].lstrip("#").strip()
+        if not name:
+            raise forms.ValidationError("カテゴリ名を入力してください。")
         room = self.instance.room
         if room is not None and room.pk is not None:
             duplicates = Category.objects.filter(

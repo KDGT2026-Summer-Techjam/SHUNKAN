@@ -1,8 +1,21 @@
 from django.db import transaction
-from django.db.models.signals import post_delete
+from django.db.models.signals import post_delete, post_save
 from django.dispatch import receiver
 
-from .models import Photo
+from .models import Category, DEFAULT_CATEGORY_NAMES, Photo, Room
+
+
+@receiver(post_save, sender=Room)
+def create_default_categories_for_room(sender, instance, created, using, **kwargs):
+    if not created:
+        return
+
+    Category.objects.using(using).bulk_create(
+        [
+            Category(room=instance, name=name, sort_order=index)
+            for index, name in enumerate(DEFAULT_CATEGORY_NAMES)
+        ]
+    )
 
 
 @receiver(post_delete, sender=Photo)

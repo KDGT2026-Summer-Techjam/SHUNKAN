@@ -7,6 +7,18 @@ from django.db.models import F, Q
 from django.utils import timezone
 
 
+DEFAULT_CATEGORY_NAMES = (
+    "食べた",
+    "聴いた",
+    "観た",
+    "感じた",
+    "会った",
+    "作った",
+    "学んだ",
+    "その他",
+)
+
+
 class Room(models.Model):
     objects = models.Manager()
 
@@ -90,7 +102,7 @@ class Category(models.Model):
         ordering: ClassVar[list[str]] = ["sort_order", "id"]
 
     def __str__(self):
-        return self.name
+        return f"#{self.name.lstrip('#')}"
 
 class Task(models.Model):
     objects = models.Manager()

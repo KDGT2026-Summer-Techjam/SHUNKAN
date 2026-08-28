@@ -23,7 +23,7 @@ from .image_processing import (
     read_captured_at,
 )
 from .forms import MomentLogForm, RoomForm, TaskForm
-from .models import Room, Category, Task, MomentLog, Photo
+from .models import DEFAULT_CATEGORY_NAMES, Room, Category, Task, MomentLog, Photo
 from .room_state import log_post_permission
 
 
@@ -482,18 +482,18 @@ class CategoryViewTests(TestCase):
     def test_owner_can_create_category(self):
         response = self.client.post(
             reverse("room_categories", args=[self.owned_room.pk]),
-            {"name": "グルメ", "color": "#FB8500"},
+            {"name": "#グルメ", "color": "#FB8500"},
         )
 
         self.assertRedirects(response, reverse("room_categories", args=[self.owned_room.pk]))
         category = Category.objects.get(room=self.owned_room, name="グルメ")
         self.assertEqual(category.color, "#FB8500")
-        self.assertEqual(category.sort_order, 1)
+        self.assertEqual(category.sort_order, self.owned_room.categories.count() - 1)
 
     def test_owner_can_update_category(self):
         response = self.client.post(
             reverse("category_update", args=[self.owned_room.pk, self.category.pk]),
-            {"name": "夏祭り", "color": ""},
+            {"name": "#夏祭り", "color": ""},
         )
 
         self.assertRedirects(response, reverse("room_categories", args=[self.owned_room.pk]))
@@ -540,19 +540,19 @@ class CategoryViewTests(TestCase):
         )
 
         self.assertEqual(response.status_code, 403)
-        self.assertFalse(Category.objects.filter(room=ended_room).exists())
+        self.assertFalse(Category.objects.filter(room=ended_room, name="追加").exists())
 
     def test_quick_create_adds_category_to_owned_room(self):
         response = self.client.post(
             reverse("category_quick_create", args=[self.owned_room.pk]),
-            {"name": "即席カテゴリ", "color": ""},
+            {"name": "#即席カテゴリ", "color": ""},
         )
 
         self.assertEqual(response.status_code, 200)
         category = Category.objects.get(room=self.owned_room, name="即席カテゴリ")
         data = response.json()
         self.assertEqual(data["id"], category.pk)
-        self.assertEqual(data["label"], "即席カテゴリ")
+        self.assertEqual(data["label"], "#即席カテゴリ")
 
     def test_quick_create_rejects_duplicate_category_name(self):
         response = self.client.post(
@@ -1219,6 +1219,11 @@ class RoomViewTests(TestCase):
         )
 
         self.assertEqual(room.owner, self.owner)
+        self.assertEqual(
+            list(room.categories.order_by("sort_order").values_list("name", flat=True)),
+            list(DEFAULT_CATEGORY_NAMES),
+        )
+        self.assertEqual(str(room.categories.first()), "#食べた")
 
     def test_room_creation_rejects_end_before_start(self):
         response = self.client.post(

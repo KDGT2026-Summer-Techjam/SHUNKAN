@@ -221,7 +221,7 @@ def category_quick_create(request, room_id):
         category.room = room
         category.sort_order = room.categories.count()
         category.save()
-        return JsonResponse({"id": category.pk, "label": category.name})
+        return JsonResponse({"id": category.pk, "label": str(category)})
     return JsonResponse(
         {"errors": form.errors.as_json()},
         status=400,
