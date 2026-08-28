@@ -25,7 +25,6 @@ from .forms import (
     CategoryForm,
     MomentLogForm,
     MomentLogUpdateForm,
-    PhotoUpdateForm,
     RoomForm,
     TaskForm,
     TaskUpdateForm,
@@ -250,7 +249,6 @@ def room_moments_new(request, room_id):
             raise PermissionDenied(permission.message)
         form = MomentLogForm(request.POST, room=room, now=now)
         images = request.FILES.getlist("images")
-        captions = request.POST.getlist("captions")
         captured_ats = request.POST.getlist("captured_at")
         captured_at_sources = request.POST.getlist("captured_at_source")
         processed_images = []
@@ -275,9 +273,6 @@ def room_moments_new(request, room_id):
             form.add_error(None, "完了するタスクを選んでください。")
         if complete_task and not images:
             form.add_error(None, "タスクを写真と一緒に完了するには、写真を1枚以上追加してください。")
-        for index, caption in enumerate(captions, start=1):
-            if len(caption) > 140:
-                form.add_error(None, f"写真{index}: キャプションは140文字以内で入力してください。")
         if len(images) > 3:
             form.add_error(None, "写真は3枚までです。")
         else:
@@ -376,11 +371,6 @@ def room_moments_new(request, room_id):
                                 captured_at, source = parsed_captured_data[index]
                                 photo = Photo(
                                     moment_log=moment,
-                                    caption=(
-                                        captions[index]
-                                        if index < len(captions)
-                                        else ""
-                                    ),
                                     captured_at=captured_at,
                                     captured_at_source=source,
                                     sort_order=index,
@@ -689,22 +679,6 @@ def photo_list(request, room_id):
     context.update({"heading": "写真", "items": photo_qs, "item_kind": "photo"})
     return render(request, "core/owned_list.html", context)
 
-
-@login_required
-@require_http_methods(["GET", "POST"])
-def photo_update(request, room_id, photo_id):
-    room = get_owned_room(request.user, room_id)
-    require_active_room(room)
-    photo = get_owned_photo(request.user, room_id, photo_id)
-    form = PhotoUpdateForm(request.POST or None, instance=photo)
-    if request.method == "POST" and form.is_valid():
-        form.save()
-        return redirect("photo_list", room_id=room_id)
-    context = room_display_context(room, active_nav="album")
-    context.update(
-        {"form": form, "heading": "写真のひとことを更新", "form_kind": "photo"}
-    )
-    return render(request, "core/owned_form.html", context)
 
 
 @login_required

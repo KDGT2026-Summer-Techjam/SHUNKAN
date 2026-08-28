@@ -115,12 +115,6 @@ class MomentLogUpdateForm(forms.ModelForm):
         labels = {"body": "SHUNKAN-log本文"}
 
 
-class PhotoUpdateForm(forms.ModelForm):
-    class Meta:
-        model = Photo
-        fields = ("caption",)
-        labels = {"caption": "写真へのひとこと"}
-
 
 class CategoryForm(forms.ModelForm):
     class Meta:

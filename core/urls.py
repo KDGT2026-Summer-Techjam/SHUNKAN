@@ -78,11 +78,6 @@ urlpatterns = [
     ),
     path("rooms/<int:room_id>/photos/", views.photo_list, name="photo_list"),
     path(
-        "rooms/<int:room_id>/photos/<int:photo_id>/update/",
-        views.photo_update,
-        name="photo_update",
-    ),
-    path(
         "rooms/<int:room_id>/photos/<int:photo_id>/delete/",
         views.photo_delete,
         name="photo_delete",

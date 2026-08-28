@@ -180,14 +180,15 @@ class MomentImageUploadTests(TestCase):
                 "body": "写真を残した瞬間",
                 "occurred_at": self.occurred_at,
                 "images": self.make_jpeg(),
-                "captions": "夕暮れ",
+                "captions": "写真ごとのひとことは保存しない",
             },
         )
 
         self.assertRedirects(response, reverse("room_album", args=[self.room.pk]))
         moment = MomentLog.objects.get(room=self.room)
         photo = Photo.objects.get(moment_log=moment)
-        self.assertEqual(photo.caption, "夕暮れ")
+        self.assertEqual(moment.body, "写真を残した瞬間")
+        self.assertEqual(photo.caption, "")
         self.assertLess(abs((moment.occurred_at - timezone.now()).total_seconds()), 60)
         with Image.open(photo.image) as image:
             self.assertLessEqual(max(image.size), MAX_IMAGE_DIMENSION)
@@ -414,7 +415,6 @@ class PageRenderingTests(TestCase):
             reverse("room_moments_new", args=[self.room.pk]),
             reverse("moment_update", args=[self.room.pk, self.moment.pk]),
             reverse("photo_list", args=[self.room.pk]),
-            reverse("photo_update", args=[self.room.pk, self.photo.pk]),
             reverse("room_album", args=[self.room.pk]),
         ]
 
@@ -1630,11 +1630,12 @@ class PhotoOwnerAccessTests(TestCase):
         )
         self.client.force_login(self.owner)
 
-    def test_list_shows_only_photos_in_owned_room(self):
+    def test_list_shows_moment_comment_not_legacy_photo_caption(self):
         response = self.client.get(reverse("photo_list", args=[self.owned_room.pk]))
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "自分の写真")
+        self.assertContains(response, "自分の記録")
+        self.assertNotContains(response, "自分の写真")
         self.assertNotContains(response, "他人の写真")
 
     def test_other_users_photo_list_returns_404(self):
@@ -1642,35 +1643,6 @@ class PhotoOwnerAccessTests(TestCase):
 
         self.assertEqual(response.status_code, 404)
 
-    def test_owner_can_update_own_photo(self):
-        response = self.client.post(
-            reverse("photo_update", args=[self.owned_room.pk, self.owned_photo.pk]),
-            {"caption": "更新した写真"},
-        )
-
-        self.assertRedirects(response, reverse("photo_list", args=[self.owned_room.pk]))
-        self.owned_photo.refresh_from_db()
-        self.assertEqual(self.owned_photo.caption, "更新した写真")
-
-    def test_cannot_update_another_users_photo(self):
-        response = self.client.post(
-            reverse("photo_update", args=[self.other_room.pk, self.other_photo.pk]),
-            {"caption": "書き換え"},
-        )
-
-        self.assertEqual(response.status_code, 404)
-        self.other_photo.refresh_from_db()
-        self.assertEqual(self.other_photo.caption, "他人の写真")
-
-    def test_cannot_update_another_users_photo_via_owned_room_url(self):
-        response = self.client.post(
-            reverse("photo_update", args=[self.owned_room.pk, self.other_photo.pk]),
-            {"caption": "書き換え"},
-        )
-
-        self.assertEqual(response.status_code, 404)
-        self.other_photo.refresh_from_db()
-        self.assertEqual(self.other_photo.caption, "他人の写真")
 
     def test_owner_can_delete_own_photo(self):
         response = self.client.post(
@@ -1805,24 +1777,6 @@ class RelationalIntegrityRegressionTests(TestCase):
         self.assertFalse(form.is_valid())
         self.assertIn("ends_at", form.errors)
 
-    def test_upload_caption_over_140_characters_is_rejected_before_writes(self):
-        output = BytesIO()
-        Image.new("RGB", (20, 20), "coral").save(output, format="JPEG")
-        response = self.client.post(
-            reverse("room_moments_new", args=[self.room.pk]),
-            {
-                "body": "長いキャプション",
-                "images": SimpleUploadedFile(
-                    "caption.jpg", output.getvalue(), content_type="image/jpeg"
-                ),
-                "captions": "あ" * 141,
-            },
-        )
-
-        self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "140文字以内")
-        self.assertFalse(MomentLog.objects.filter(room=self.room).exists())
-        self.assertFalse(Photo.objects.exists())
 
 
 class RoomMutationStateTests(TestCase):
@@ -1859,7 +1813,6 @@ class RoomMutationStateTests(TestCase):
             reverse("room_update", args=[self.room.pk]),
             reverse("task_update", args=[self.room.pk, self.task.pk]),
             reverse("moment_update", args=[self.room.pk, self.moment.pk]),
-            reverse("photo_update", args=[self.room.pk, self.photo.pk]),
             reverse("category_update", args=[self.room.pk, self.category.pk]),
         )
 

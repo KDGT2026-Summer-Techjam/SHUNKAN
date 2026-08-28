@@ -226,6 +226,7 @@ button { color: inherit; }
 .achievement-overlay { position: fixed; inset: 0; z-index: 90; display: grid; place-items: center; padding: 24px; opacity: 0; pointer-events: none; color: #fff; background: rgba(0,0,0,.75); transition: opacity 500ms cubic-bezier(0,0,.2,1); }
 .achievement-overlay.is-active { opacity: 1; pointer-events: auto; }
 .achievement-canvas { position: fixed; inset: 0; z-index: 91; width: 100%; height: 100%; pointer-events: none; }
+.achievement-canvas[hidden] { display: none; }
 .achievement-message { position: relative; z-index: 92; max-width: min(100%, 360px); padding: 42px 20px; color: #fff; font-family: "Noto Serif JP", "Yu Mincho", serif; font-size: clamp(24px, 7vw, 32px); font-weight: 700; line-height: 1.45; text-align: center; text-shadow: 0 2px 3px rgba(0,0,0,.56), 0 6px 24px rgba(0,0,0,.56); transform: translateY(8px) scale(.94); opacity: 0; transition: opacity 350ms cubic-bezier(0,0,.2,1), transform 350ms cubic-bezier(0,0,.2,1); }
 .achievement-message::before { position: absolute; z-index: -1; top: 50%; left: 50%; width: 340px; height: 150px; content: ""; background: radial-gradient(ellipse at center, rgba(0,0,0,.58) 0%, rgba(0,0,0,.32) 45%, rgba(0,0,0,0) 72%); transform: translate(-50%, -50%); }
 .achievement-message.is-active { transform: translateY(0) scale(1); opacity: 1; }

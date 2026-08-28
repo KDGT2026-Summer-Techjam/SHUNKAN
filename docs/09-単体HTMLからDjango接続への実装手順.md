@@ -75,7 +75,7 @@ room = get_object_or_404(Room, pk=room_id, owner=request.user)
 - Room一覧: ログイン中の利用者が所有するRoomだけ
 - Task: 選択中RoomのTaskと進捗
 - SHUNKAN-log: 選択中Roomのカテゴリ、関連Task、入力値
-- アルバム: 選択中Roomの完了Task、SHUNKAN-log、写真、写真へのひとこと
+- アルバム: 選択中Roomの完了Task、SHUNKAN-log（この瞬間へのひとこと）、写真
 
 データが0件のときは、サンプルのTaskや写真を表示せず、空状態を表示する。
 
