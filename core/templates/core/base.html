@@ -12,6 +12,7 @@
 <body>
   <div class="app-shell">
     <a class="skip-link" href="#main-content">本文へ移動</a>
+    {% block app_logo %}{% if user.is_authenticated %}<div class="app-logo"><a href="{% url 'rooms' %}" aria-label="旬間 (SHUNKAN) のRoom一覧へ"><img src="{% static 'core/images/shunkan-logo.png' %}" alt="旬間 (SHUNKAN)"></a></div>{% endif %}{% endblock %}
     <main id="main-content" class="screen {% block screen_class %}{% endblock %}">
       {% block content %}{% endblock %}
     </main>

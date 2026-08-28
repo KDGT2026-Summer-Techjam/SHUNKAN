@@ -27,6 +27,13 @@ button { color: inherit; }
 .screen { min-height: 100svh; padding: 30px 22px 58px; }
 .screen--with-nav { padding-bottom: calc(156px + env(safe-area-inset-bottom)); }
 .screen--auth { display: grid; align-content: center; }
+.app-logo { display: flex; justify-content: center; padding: 10px 22px 0; }
+.app-logo a { display: inline-flex; border-radius: 12px; }
+.app-logo img { display: block; width: 78px; height: auto; }
+.app-logo + .screen { min-height: calc(100svh - 55px); padding-top: 20px; }
+.app-logo--rooms { padding-top: 12px; }
+.app-logo--rooms + .screen { min-height: calc(100svh - 95px); padding-top: 18px; }
+.app-logo--rooms img { width: 144px; }
 .brand { text-align: center; }
 .brand__logo { display: inline-block; width: min(58vw, 250px); height: auto; object-fit: contain; }
 .brand--large { margin-bottom: 46px; }
