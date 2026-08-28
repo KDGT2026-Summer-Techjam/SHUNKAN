@@ -1,0 +1,6 @@
+<div class="achievement-overlay" data-achievement-overlay aria-hidden="true">
+  <div class="achievement-message" data-achievement-message role="status" aria-live="polite" aria-hidden="true"></div>
+  <p class="achievement-skip-hint" data-achievement-skip-hint>タップで閉じる</p>
+</div>
+<canvas class="achievement-canvas" data-achievement-fallback-canvas aria-hidden="true" hidden></canvas>
+{% if achievement_message %}<div data-achievement-autoplay data-achievement-message="{{ achievement_message }}"></div>{% endif %}

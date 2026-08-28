@@ -22,6 +22,21 @@
 
   const occupiedCount = () => inputs.filter((input) => input.files.length).length;
   const nextEmptyInput = () => inputs.find((input) => !input.files.length);
+  const toLocalDateTimeValue = (date) => {
+    const pad = (n) => String(n).padStart(2, "0");
+    return (
+      `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}` +
+      `T${pad(date.getHours())}:${pad(date.getMinutes())}`
+    );
+  };
+  const recordCapturedAt = (input) => {
+    const card = cards[inputs.indexOf(input)];
+    const capturedAt = card?.querySelector("[data-captured-at]");
+    const source = card?.querySelector("[data-captured-at-source]");
+    if (!capturedAt || !source) return;
+    capturedAt.value = toLocalDateTimeValue(new Date());
+    source.value = "manual";
+  };
 
   const updateUi = () => {
     const selected = occupiedCount();
@@ -154,6 +169,7 @@
       const transfer = new DataTransfer();
       transfer.items.add(new File([blob], `shunkan-${Date.now()}.jpg`, { type: "image/jpeg" }));
       destinationInput.files = transfer.files;
+      recordCapturedAt(destinationInput);
       setPreview(destinationInput);
       dialog.close();
     }, "image/jpeg", 0.9);

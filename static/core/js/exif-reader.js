@@ -12,6 +12,12 @@
     const capturedAtInput = card?.querySelector("[data-captured-at]");
     const sourceInput = card?.querySelector("[data-captured-at-source]");
 
+    const setCurrentTime = () => {
+      if (!capturedAtInput || !sourceInput) return;
+      capturedAtInput.value = toDatetimeLocal(new Date());
+      sourceInput.value = "manual";
+    };
+
     capturedAtInput?.addEventListener("input", () => {
       sourceInput.value = capturedAtInput.value ? "manual" : "unknown";
     });
@@ -27,15 +33,24 @@
 
       const file = input.files[0];
       if (!file) return;
-      if (!/^image\/jpeg$/.test(file.type)) return;
+      if (!/^image\/jpeg$/.test(file.type)) {
+        setCurrentTime();
+        return;
+      }
 
       try {
         const buffer = await file.arrayBuffer();
         const tags = window.EXIF ? window.EXIF.readFromBinaryFile(buffer) : null;
         const raw = tags ? tags.DateTimeOriginal || tags.DateTimeDigitized : null;
-        if (!raw) return;
+        if (!raw) {
+          setCurrentTime();
+          return;
+        }
         const match = String(raw).match(/^(\d{4}):(\d{2}):(\d{2}) (\d{2}):(\d{2}):(\d{2})/);
-        if (!match) return;
+        if (!match) {
+          setCurrentTime();
+          return;
+        }
         const date = new Date(
           Number(match[1]),
           Number(match[2]) - 1,
@@ -44,12 +59,14 @@
           Number(match[5]),
           Number(match[6]),
         );
-        if (Number.isNaN(date.getTime())) return;
-        const value = toDatetimeLocal(date);
-        capturedAtInput.value = value;
+        if (Number.isNaN(date.getTime())) {
+          setCurrentTime();
+          return;
+        }
+        capturedAtInput.value = toDatetimeLocal(date);
         sourceInput.value = "exif";
       } catch (_) {
-        // EXIFが読めなくても写真のアップロード自体は続行する。
+        setCurrentTime();
       }
     });
   });

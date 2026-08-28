@@ -242,10 +242,7 @@
       later(() => { if (token === runToken) finish(reduced ? reducedTimings.fadeOut : timings.fadeOut); }, lastLaunch + (useEffect ? timings.flight : 0) + afterglow);
     };
     if (reduced) schedule(null);
-    else if (!libraryReady()) schedule(startFallback() ? "fallback" : null);
-    else startFireworks(token).then((ready) => {
-      if (token === runToken) schedule(ready ? "library" : (startFallback() ? "fallback" : null));
-    });
+    else schedule(startFallback() ? "fallback" : null);
     return true;
   };
   const abandon = () => {
@@ -265,6 +262,11 @@
     if (playing && ["Escape", "Enter", " "].includes(event.key)) { event.preventDefault(); skip(); }
   });
   window.ShunkanAchievement = { play, skip, stop, get isPlaying() { return playing; } };
+
+  const autoplay = document.querySelector("[data-achievement-autoplay]");
+  if (autoplay) {
+    requestAnimationFrame(() => play({ message: autoplay.dataset.achievementMessage }));
+  }
 
   document.querySelectorAll("[data-task-completion-form]").forEach((form) => {
     form.addEventListener("submit", async (event) => {

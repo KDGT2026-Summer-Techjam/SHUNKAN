@@ -393,6 +393,8 @@ def room_moments_new(request, room_id):
                     storage.delete(name)
                 raise
             if saved:
+                if locked_task is not None:
+                    request.session["achievement_message"] = f"{locked_task.title} を達成！"
                 return redirect("room_album", room_id=room.pk)
     else:
         form = MomentLogForm(room=room, now=now)
@@ -419,9 +421,11 @@ def room_album(request, room_id):
         .select_related("task", "category")
         .order_by("-occurred_at", "-created_at")
     )
+    achievement_message = request.session.pop("achievement_message", None)
     context = room_display_context(room, active_nav="album")
     context.update(
         {
+            "achievement_message": achievement_message,
             "moments": moments,
             "completed_tasks": room.tasks.filter(is_completed=True)
             .select_related("category")
