@@ -35,41 +35,36 @@ class CaptureFormParser(HTMLParser):
 
 
 class PasswordPolicyTests(TestCase):
-    def test_standard_validators_include_twelve_character_minimum(self):
-        validators = {
-            validator["NAME"]: validator
-            for validator in settings.AUTH_PASSWORD_VALIDATORS
-        }
-
+    def test_only_the_five_character_minimum_validator_is_enabled(self):
         self.assertEqual(
-            set(validators),
-            {
-                "django.contrib.auth.password_validation.UserAttributeSimilarityValidator",
-                "django.contrib.auth.password_validation.MinimumLengthValidator",
-                "django.contrib.auth.password_validation.CommonPasswordValidator",
-                "django.contrib.auth.password_validation.NumericPasswordValidator",
-            },
-        )
-        self.assertEqual(
-            validators[
-                "django.contrib.auth.password_validation.MinimumLengthValidator"
-            ]["OPTIONS"]["min_length"],
-            12,
+            settings.AUTH_PASSWORD_VALIDATORS,
+            [
+                {
+                    "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
+                    "OPTIONS": {"min_length": 5},
+                }
+            ],
         )
 
-    def test_short_password_is_rejected(self):
+    def test_passwords_shorter_than_five_characters_are_rejected(self):
         user = get_user_model()(username="policy-user")
 
         with self.assertRaises(ValidationError):
-            validate_password("Short7!pass", user=user)
+            validate_password("1234", user=user)
 
-    def test_signup_displays_standard_password_help_text_as_markup(self):
+    def test_any_five_character_password_is_accepted(self):
+        user = get_user_model()(username="policy-user")
+
+        validate_password("12345", user=user)
+        validate_password("aaaaa", user=user)
+        validate_password("policy-user", user=user)
+
+    def test_signup_displays_the_five_character_minimum(self):
         response = self.client.get(reverse("signup"))
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, '<div class="field__help"><ul>', html=False)
-        self.assertContains(response, "12")
-        self.assertNotContains(response, "&lt;ul&gt;")
+        self.assertContains(response, "5")
+        self.assertNotContains(response, "よく使われるパスワード")
 
 
 class HealthCheckTests(TestCase):
