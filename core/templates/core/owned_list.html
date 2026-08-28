@@ -2,7 +2,7 @@
 {% block title %}{{ heading }} | 旬間 (SHUNKAN){% endblock %}
 {% block screen_class %}screen--with-nav{% endblock %}
 {% block content %}
-<header class="page-header page-header--center">
+<header class="page-header">
   <p class="page-header__eyebrow">{{ room.name }}</p>
   <h1>{{ heading }}</h1>
   <p>残した内容の確認・編集ができます。</p>
@@ -13,15 +13,15 @@
     <article class="album-entry">
       <div class="album-entry__meta"><span>SHUNKAN-log</span><time datetime="{{ item.occurred_at|date:'c' }}">{{ item.occurred_at|date:"Y/n/j H:i" }}</time></div>
       <p class="album-entry__body">{{ item.body }}</p>
-      {% if item.photos.all %}<div class="album-entry__photos">{% for photo in item.photos.all %}<img class="managed-photo" src="{{ photo.image.url }}" alt="{{ photo.caption|default:'SHUNKAN-logの写真' }}" loading="lazy">{% endfor %}</div>{% endif %}
+      {% if item.photos.all %}<div class="album-entry__photos">{% for photo in item.photos.all %}<img class="managed-photo" src="{{ photo.image.url }}" alt="SHUNKAN-logの写真" loading="lazy">{% endfor %}</div>{% endif %}
       <div class="card-actions"><a class="small-button" href="{% url 'moment_update' room.pk item.pk %}">編集</a><form method="post" action="{% url 'moment_delete' room.pk item.pk %}" onsubmit="return confirm('このSHUNKAN-logを削除しますか？');">{% csrf_token %}<button class="small-button small-button--danger" type="submit">削除</button></form></div>
     </article>
     {% else %}
     <article class="album-entry">
-      <img class="managed-photo managed-photo--large" src="{{ item.image.url }}" alt="{{ item.caption|default:'SHUNKAN-logの写真' }}" loading="lazy">
-      <p class="album-entry__body">{{ item.caption|default:"ひとことはありません" }}</p>
+      <img class="managed-photo managed-photo--large" src="{{ item.image.url }}" alt="SHUNKAN-logの写真" loading="lazy">
+      <p class="album-entry__body">{{ item.moment_log.body|default:"ひとことはありません" }}</p>
       <p class="album-entry__task">{{ item.moment_log.occurred_at|date:"Y/n/j H:i" }}の記録</p>
-      <div class="card-actions"><a class="small-button" href="{% url 'photo_update' room.pk item.pk %}">編集</a><form method="post" action="{% url 'photo_delete' room.pk item.pk %}" onsubmit="return confirm('この写真を削除しますか？');">{% csrf_token %}<button class="small-button small-button--danger" type="submit">削除</button></form></div>
+      <div class="card-actions"><form method="post" action="{% url 'photo_delete' room.pk item.pk %}" onsubmit="return confirm('この写真を削除しますか？');">{% csrf_token %}<button class="small-button small-button--danger" type="submit">削除</button></form></div>
     </article>
     {% endif %}
   {% empty %}<div class="empty-state"><strong>まだ{{ heading }}がありません</strong><span>今を残す画面から追加できます。</span></div>{% endfor %}

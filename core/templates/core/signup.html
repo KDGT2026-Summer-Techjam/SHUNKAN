@@ -11,7 +11,7 @@
     {% csrf_token %}
     {% if form.non_field_errors %}<div class="form-error form-error--block" role="alert">{{ form.non_field_errors }}</div>{% endif %}
     <div class="field"><label class="field__label" for="{{ form.username.id_for_label }}">ユーザー名</label>{{ form.username }}{% if form.username.errors %}<span class="form-error" role="alert">{{ form.username.errors|striptags }}</span>{% endif %}</div>
-    <div class="field"><label class="field__label" for="{{ form.password1.id_for_label }}">パスワード</label>{{ form.password1 }}{% if form.password1.errors %}<span class="form-error" role="alert">{{ form.password1.errors|striptags }}</span>{% endif %}</div>
+    <div class="field"><label class="field__label" for="{{ form.password1.id_for_label }}">パスワード</label>{{ form.password1 }}{% if form.password1.help_text %}<div class="field__help">{{ form.password1.help_text|safe }}</div>{% endif %}{% if form.password1.errors %}<span class="form-error" role="alert">{{ form.password1.errors|striptags }}</span>{% endif %}</div>
     <div class="field"><label class="field__label" for="{{ form.password2.id_for_label }}">パスワード（確認）</label>{{ form.password2 }}{% if form.password2.errors %}<span class="form-error" role="alert">{{ form.password2.errors|striptags }}</span>{% endif %}</div>
     <button class="primary-button" type="submit">登録してはじめる</button>
   </form>

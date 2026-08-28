@@ -1,3 +1,4 @@
+from datetime import timedelta
 from typing import ClassVar, cast
 
 from django import forms
@@ -19,6 +20,8 @@ class TaskChoiceField(forms.ModelChoiceField):
 
 
 class RoomForm(forms.ModelForm):
+    REFLECTION_WINDOW = timedelta(days=7)
+
     class Meta:
         model = Room
         fields: ClassVar[list[str]] = ["name", "starts_at", "ends_at"]
@@ -40,6 +43,46 @@ class RoomForm(forms.ModelForm):
                 attrs={"class": "field__input", "type": "datetime-local"},
             ),
         }
+
+    def clean(self):
+        cleaned_data = super().clean()
+        starts_at = cleaned_data.get("starts_at")
+        ends_at = cleaned_data.get("ends_at")
+        if ends_at is not None:
+            self.instance.reflection_deadline_at = ends_at + self.REFLECTION_WINDOW
+
+        if not self.instance.pk or starts_at is None or ends_at is None:
+            return cleaned_data
+
+        starts_on = timezone.localtime(starts_at).date()
+        ends_on = timezone.localtime(ends_at).date()
+        if self.instance.tasks.filter(due_date__isnull=False).exclude(
+            due_date__range=(starts_on, ends_on)
+        ).exists():
+            self.add_error(
+                "ends_at",
+                "既存Taskの期限がRoom期間外になるため更新できません。",
+            )
+
+        reflection_deadline = ends_at + self.REFLECTION_WINDOW
+        if self.instance.moment_logs.filter(
+            entry_type=MomentLog.EntryType.MOMENT
+        ).exclude(occurred_at__gte=starts_at, occurred_at__lt=ends_at).exists():
+            self.add_error(
+                "ends_at",
+                "既存の通常SHUNKAN-logがRoom期間外になるため更新できません。",
+            )
+        if self.instance.moment_logs.filter(
+            entry_type=MomentLog.EntryType.REFLECTION
+        ).exclude(
+            occurred_at__gte=ends_at,
+            occurred_at__lte=reflection_deadline,
+        ).exists():
+            self.add_error(
+                "ends_at",
+                "既存の振り返りが振り返り期間外になるため更新できません。",
+            )
+        return cleaned_data
 
 
 class TaskUpdateForm(forms.ModelForm):
@@ -72,12 +115,6 @@ class MomentLogUpdateForm(forms.ModelForm):
         labels = {"body": "SHUNKAN-log本文"}
 
 
-class PhotoUpdateForm(forms.ModelForm):
-    class Meta:
-        model = Photo
-        fields = ("caption",)
-        labels = {"caption": "写真へのひとこと"}
-
 
 class CategoryForm(forms.ModelForm):
     class Meta:
@@ -101,7 +138,9 @@ class CategoryForm(forms.ModelForm):
         self.instance.room = room
 
     def clean_name(self):
-        name = self.cleaned_data["name"]
+        name = self.cleaned_data["name"].lstrip("#").strip()
+        if not name:
+            raise forms.ValidationError("カテゴリ名を入力してください。")
         room = self.instance.room
         if room is not None and room.pk is not None:
             duplicates = Category.objects.filter(

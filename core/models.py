@@ -7,6 +7,18 @@ from django.db.models import F, Q
 from django.utils import timezone
 
 
+DEFAULT_CATEGORY_NAMES = (
+    "食べた",
+    "聴いた",
+    "観た",
+    "感じた",
+    "会った",
+    "作った",
+    "学んだ",
+    "その他",
+)
+
+
 class Room(models.Model):
     objects = models.Manager()
 
@@ -90,7 +102,7 @@ class Category(models.Model):
         ordering: ClassVar[list[str]] = ["sort_order", "id"]
 
     def __str__(self):
-        return self.name
+        return f"#{self.name.lstrip('#')}"
 
 class Task(models.Model):
     objects = models.Manager()
@@ -208,6 +220,19 @@ class MomentLog(models.Model):
     def clean(self):
         super().clean()
 
+        if self.entry_type == self.EntryType.REFLECTION:
+            relation_errors = {}
+            if self.task_id is not None:
+                relation_errors["task"] = "振り返りログにはTaskを関連付けできません。"
+            if self.category_id is not None:
+                relation_errors["category"] = "振り返りログにはカテゴリを関連付けできません。"
+            if self.pk and self.photos.exists():
+                relation_errors["entry_type"] = (
+                    "写真があるSHUNKAN-logを振り返りログには変更できません。"
+                )
+            if relation_errors:
+                raise ValidationError(relation_errors)
+
         if self.task is not None and self.task.room_id != self.room_id:
             raise ValidationError(
                 {"task": "Task must belong to the same Room."}
@@ -243,6 +268,11 @@ class MomentLog(models.Model):
 class Photo(models.Model):
     objects = models.Manager()
 
+    class CapturedAtSource(models.TextChoices):
+        EXIF = "exif", "exif"
+        MANUAL = "manual", "manual"
+        UNKNOWN = "unknown", "unknown"
+
     moment_log = models.ForeignKey(
         MomentLog,
         on_delete=models.CASCADE,
@@ -255,6 +285,16 @@ class Photo(models.Model):
         max_length=140,
         blank=True,
     )
+    captured_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="EXIFまたは利用者が指定した撮影日時",
+    )
+    captured_at_source = models.CharField(
+        max_length=10,
+        choices=CapturedAtSource.choices,
+        default=CapturedAtSource.UNKNOWN,
+    )
     sort_order = models.PositiveIntegerField(default=0)
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -263,6 +303,13 @@ class Photo(models.Model):
 
     def clean(self):
         super().clean()
+        if (
+            self.moment_log_id
+            and self.moment_log.entry_type == MomentLog.EntryType.REFLECTION
+        ):
+            raise ValidationError(
+                {"moment_log": "振り返りログには写真を追加できません。"}
+            )
         if self.moment_log_id and self._state.adding:
             if self.moment_log.photos.count() >= 3:
                 raise ValidationError(

@@ -4,6 +4,7 @@ from . import views
 
 urlpatterns = [
     path("", views.home, name="home"),
+    path("healthz/", views.healthz, name="healthz"),
     path("accounts/signup/", views.signup, name="signup"),
     path("accounts/login/", auth_views.LoginView.as_view(template_name="core/login.html", redirect_authenticated_user=True), name="login"),
     path("accounts/logout/", auth_views.LogoutView.as_view(), name="logout"),
@@ -76,11 +77,6 @@ urlpatterns = [
         name="moment_delete",
     ),
     path("rooms/<int:room_id>/photos/", views.photo_list, name="photo_list"),
-    path(
-        "rooms/<int:room_id>/photos/<int:photo_id>/update/",
-        views.photo_update,
-        name="photo_update",
-    ),
     path(
         "rooms/<int:room_id>/photos/<int:photo_id>/delete/",
         views.photo_delete,

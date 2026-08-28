@@ -3,17 +3,20 @@
 {% block title %}今を残す | 旬間 (SHUNKAN){% endblock %}
 {% block screen_class %}screen--with-nav{% endblock %}
 {% block content %}
-<header class="page-header page-header--center">
+<header class="page-header page-header--capture">
   <p class="page-header__eyebrow">{{ room.name }}</p>
-  <h1>今を残す</h1>
-  <p>写真から、この瞬間を残そう</p>
+  <h1>{% if can_post_reflection and not can_post_moment %}振り返りを残す{% elif can_post_moment %}今を残す{% else %}記録の受付は終了しました{% endif %}</h1>
+  <p>{% if can_post_reflection and not can_post_moment %}このRoomでできたことや感じたことを残そう{% elif can_post_moment %}写真から、この瞬間を残そう{% else %}{{ reflection_permission.message }}{% endif %}</p>
 </header>
+{% if can_post_moment or can_post_reflection %}
 <form class="form-stack form-card capture-form" method="post" enctype="multipart/form-data" data-capture-form>
   {% csrf_token %}
+  <input type="hidden" name="entry_type" value="{% if can_post_reflection and not can_post_moment %}reflection{% else %}moment{% endif %}">
   {% if form.non_field_errors %}<div class="form-error form-error--block" role="alert">{{ form.non_field_errors }}</div>{% endif %}
+  {% if can_post_moment %}
   <section class="photo-section" aria-labelledby="photo-title">
     <div class="photo-section__heading">
-      <span><strong id="photo-title">写真</strong><small>JPEG / PNG / WebP / GIF、1枚10MBまで</small></span>
+      <span><strong id="photo-title">写真</strong><small>画像を選択してください（1枚10MBまで）</small></span>
       <strong class="photo-count" data-photo-count>0 / 3枚</strong>
     </div>
     {% if photo_uploads_enabled %}
@@ -29,17 +32,20 @@
             <img class="camera-photo-preview" data-photo-preview alt="写真{{ i }}のプレビュー">
             <button type="button" class="photo-remove-button" data-photo-remove aria-label="写真{{ i }}を削除">×</button>
           </div>
-          <input class="visually-hidden" type="file" name="images" accept="image/jpeg,image/png,image/webp,image/gif" data-photo-input {% if forloop.first %}id="primary-photo-input" capture="environment"{% endif %}>
-          <label class="field"><span class="field__label">写真へのひとこと（任意）</span><input class="field__input" name="captions" maxlength="140" placeholder="この写真の思い出"></label>
+          <input class="visually-hidden" type="file" name="images" data-photo-input {% if forloop.first %}id="primary-photo-input"{% endif %}>
+          <input type="hidden" name="captured_at_source" data-captured-at-source value="unknown">
+          <label class="field"><span class="field__label">撮影日時</span><input class="field__input" name="captured_at" type="datetime-local" data-captured-at><small class="field__help">JPEGに撮影日時のEXIF情報がある場合は端末上で自動入力します。読み取れない場合は現在の時刻を自動入力します。編集もできます。</small></label>
         </article>
       {% endfor %}
       </div>
       <button class="secondary-button photo-add-button" type="button" data-file-picker hidden>＋ 写真を追加</button>
     {% else %}
-      <div class="readonly-notice" role="status"><strong>写真アップロードは一時停止中です</strong><br>安全な外部ストレージの準備が完了するまで、SHUNKAN-logのみ保存できます。</div>
+      <div class="readonly-notice" role="status"><strong>写真アップロードは一時停止中です</strong><br>安全な外部ストレージの準備が完了するまで、写真なしのSHUNKAN-logのみ保存できます。Taskの完了はタスク画面から行ってください。</div>
     {% endif %}
   </section>
-  <div class="field capture-caption"><label class="field__label" for="{{ form.body.id_for_label }}">この瞬間へのひとこと</label>{{ form.body }}{% if form.body.errors %}<span class="form-error">{{ form.body.errors|striptags }}</span>{% endif %}</div>
+  {% endif %}
+  <div class="field capture-caption"><label class="field__label" for="{{ form.body.id_for_label }}">{% if can_post_reflection and not can_post_moment %}振り返りのひとこと{% else %}この瞬間へのひとこと{% endif %}</label>{{ form.body }}{% if form.body.errors %}<span class="form-error">{{ form.body.errors|striptags }}</span>{% endif %}</div>
+  {% if can_post_moment %}
   <details class="capture-details" {% if form.errors or request.POST.task or request.POST.category %}open{% endif %}>
     <summary><span><strong>記録を詳しく残す</strong><small>Task・カテゴリなどを追加</small></span><span aria-hidden="true">＋</span></summary>
     <div class="capture-details__body">
@@ -47,49 +53,52 @@
       <div class="field">
         <label class="field__label" for="{{ form.task.id_for_label }}">関連Task</label>{{ form.task }}
         {% if form.task.errors %}<span class="form-error">{{ form.task.errors|striptags }}</span>{% endif %}
-        <label class="task-completion-option" data-task-completion hidden><input type="checkbox" name="complete_task" value="1" {% if request.POST.complete_task %}checked{% endif %}><span><strong>このTaskを完了する</strong><small>写真を最初の思い出として残します。</small></span></label>
-        <details class="quick-create" data-quick-create="task">
-          <summary></summary>＋ Taskを追加</summary>
-          <div class="quick-create__body">
-            <form class="quick-create__form" data-quick-create-form action="{% url 'task_quick_create' room.pk %}" method="post">
-              {% csrf_token %}
-              <div class="field"><label class="field__label" for="quick-task-title">Task名</label><input class="field__input" id="quick-task-title" name="title" maxlength="100" placeholder="例：花火を見る"></div>
-              <div class="field"><label class="field__label" for="quick-task-due">期限（任意）</label><input class="field__input" id="quick-task-due" name="due_date" type="date"></div>
-              <p class="form-error" data-quick-create-error role="alert" hidden></p>
-              <button class="small-button" type="submit">追加する</button>
-            </form>
+        {% if photo_uploads_enabled %}<label class="task-completion-option" data-task-completion hidden><input type="checkbox" name="complete_task" value="1" {% if request.POST.complete_task %}checked{% endif %}><span><strong>このTaskを完了する</strong><small>このSHUNKAN-logと写真をTaskの記録として残します。</small></span></label>{% endif %}
+        <details class="quick-create" data-quick-create="task" data-quick-create-form="quick-task-form">
+          <summary>＋ Taskを追加</summary>
+          <div class="quick-create__body quick-create__form">
+            <div class="field"><label class="field__label" for="quick-task-title">Task名</label><input class="field__input" id="quick-task-title" name="title" maxlength="100" placeholder="例：花火を見る" form="quick-task-form"></div>
+            <div class="field"><label class="field__label" for="quick-task-due">期限（任意）</label><input class="field__input" id="quick-task-due" name="due_date" type="date" form="quick-task-form"></div>
+            <p class="form-error" data-quick-create-error role="alert" hidden></p>
+            <button class="small-button" type="submit" form="quick-task-form">追加する</button>
           </div>
         </details>
       </div>
       <div class="field">
         <label class="field__label" for="{{ form.category.id_for_label }}">カテゴリ</label>{{ form.category }}
         {% if form.category.errors %}<span class="form-error">{{ form.category.errors|striptags }}</span>{% endif %}
-        <details class="quick-create" data-quick-create="category">
-          <summary>＋ </summary>カテゴリを追加</summary>
-          <div class="quick-create__body">
-            <form class="quick-create__form" data-quick-create-form action="{% url 'category_quick_create' room.pk %}" method="post">
-              {% csrf_token %}
-              <div class="field"><label class="field__label" for="quick-category-name">カテゴリ名</label><input class="field__input" id="quick-category-name" name="name" maxlength="30" placeholder="例：花火"></div>
-              <p class="form-error" data-quick-create-error role="alert" hidden></p>
-              <button class="small-button" type="submit">追加する</button>
-            </form>
+        <details class="quick-create" data-quick-create="category" data-quick-create-form="quick-category-form">
+          <summary>＋ カテゴリを追加</summary>
+          <div class="quick-create__body quick-create__form">
+            <div class="field"><label class="field__label" for="quick-category-name">カテゴリ名</label><input class="field__input" id="quick-category-name" name="name" maxlength="30" placeholder="例：花火" form="quick-category-form"><small class="field__help">先頭の # は自動で追加されます。</small></div>
+            <p class="form-error" data-quick-create-error role="alert" hidden></p>
+            <button class="small-button" type="submit" form="quick-category-form">追加する</button>
           </div>
         </details>
       </div>
     </div>
   </details>
-  <button class="primary-button primary-button--accent" type="submit">この瞬間を保存する</button>
+  {% endif %}
+  <button class="primary-button primary-button--accent" type="submit">{% if can_post_reflection and not can_post_moment %}振り返りを保存する{% else %}この瞬間を保存する{% endif %}</button>
   <a class="secondary-button" href="{% url 'room_detail' room.pk %}">キャンセル</a>
 </form>
-{% if photo_uploads_enabled %}
-<dialog class="camera-dialog" data-camera-dialog>
-  <header class="camera-dialog__header"><span class="camera-dialog__title"><strong>写真を撮る</strong><small>カメラの使用を許可してください</small></span><button type="button" data-camera-close aria-label="カメラを閉じる">×</button></header>
-  <video data-camera-video autoplay playsinline muted></video>
+{% if can_post_moment %}
+<form id="quick-task-form" data-quick-create-form action="{% url 'task_quick_create' room.pk %}" method="post">{% csrf_token %}</form>
+<form id="quick-category-form" data-quick-create-form action="{% url 'category_quick_create' room.pk %}" method="post">{% csrf_token %}</form>
+{% endif %}
+{% else %}
+<p class="readonly-notice">このRoomは閲覧専用です。新しい記録は追加できません。</p>
+<a class="secondary-button page-back-button" href="{% url 'room_album' room.pk %}">アルバムを見る</a>
+{% endif %}
+{% if photo_uploads_enabled and can_post_moment %}
+<dialog class="camera-dialog" data-camera-dialog aria-labelledby="camera-dialog-title" aria-describedby="camera-dialog-help camera-dialog-error">
+  <header class="camera-dialog__header"><span class="camera-dialog__title"><strong id="camera-dialog-title">写真を撮る</strong><small id="camera-dialog-help">カメラの使用を許可してください</small></span><button type="button" data-camera-close aria-label="カメラを閉じる">×</button></header>
+  <video data-camera-video autoplay playsinline muted aria-label="カメラの映像"></video>
   <canvas data-camera-canvas hidden></canvas>
-  <p class="form-error" data-camera-error hidden></p>
-  <button class="primary-button primary-button--accent" type="button" data-camera-shutter>この瞬間を撮影</button>
+  <p class="form-error" id="camera-dialog-error" data-camera-error role="alert" aria-live="assertive" hidden></p>
+  <button class="primary-button primary-button--accent" type="button" data-camera-shutter disabled>カメラを準備中…</button>
 </dialog>
 {% endif %}
 {% endblock %}
 {% block navigation %}{% include "core/includes/bottom_nav.html" %}{% endblock %}
-{% block scripts %}{% if photo_uploads_enabled %}<script src="{% static 'core/js/camera-capture.js' %}" defer></script>{% endif %}<script src="{% static 'core/js/quick-create.js' %}" defer></script>{% endblock %}
+{% block scripts %}<script src="https://cdn.jsdelivr.net/npm/exif-js@2.3.0/exif.js" defer></script>{% if photo_uploads_enabled %}<script src="{% static 'core/js/exif-reader.js' %}" defer></script><script src="{% static 'core/js/camera-capture.js' %}" defer></script>{% endif %}<script src="{% static 'core/js/quick-create.js' %}" defer></script>{% endblock %}

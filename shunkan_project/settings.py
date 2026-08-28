@@ -92,7 +92,12 @@ else:
         }
     }
 
-AUTH_PASSWORD_VALIDATORS: list[dict[str, str]] = []
+AUTH_PASSWORD_VALIDATORS = [
+    {
+        "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
+        "OPTIONS": {"min_length": 5},
+    },
+]
 LANGUAGE_CODE = "ja"
 TIME_ZONE = "Asia/Tokyo"
 USE_I18N = True
