@@ -45,6 +45,16 @@ class ImageProcessingTests(TestCase):
             self.assertEqual(image.format, "JPEG")
             self.assertLessEqual(max(image.size), MAX_IMAGE_DIMENSION)
 
+    def test_image_is_accepted_regardless_of_its_filename_extension(self):
+        upload = self.make_image("JPEG")
+        upload.name = "summer-memory.heic"
+
+        processed = process_uploaded_image(upload)
+
+        self.assertEqual(processed.name, "summer-memory.jpg")
+        with Image.open(processed) as image:
+            self.assertEqual(image.format, "JPEG")
+
     def test_animated_gif_keeps_its_frames(self):
         output = BytesIO()
         frames = [

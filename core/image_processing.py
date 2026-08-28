@@ -64,7 +64,7 @@ def process_uploaded_image(uploaded_file):
         with Image.open(uploaded_file) as image:
             image_format = image.format
             if image_format not in ALLOWED_FORMATS:
-                raise ValidationError("写真はJPEG、PNG、WebP、GIF形式にしてください。")
+                raise ValidationError("この画像形式には対応していません。別の画像を選んでください。")
             if image.width * image.height > MAX_SOURCE_PIXELS:
                 raise ValidationError("画像の縦横サイズが大きすぎます。")
 

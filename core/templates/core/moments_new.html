@@ -16,7 +16,7 @@
   {% if can_post_moment %}
   <section class="photo-section" aria-labelledby="photo-title">
     <div class="photo-section__heading">
-      <span><strong id="photo-title">写真</strong><small>JPEG / PNG / WebP / GIF、1枚10MBまで</small></span>
+      <span><strong id="photo-title">写真</strong><small>画像を選択してください（1枚10MBまで）</small></span>
       <strong class="photo-count" data-photo-count>0 / 3枚</strong>
     </div>
     {% if photo_uploads_enabled %}
@@ -32,7 +32,7 @@
             <img class="camera-photo-preview" data-photo-preview alt="写真{{ i }}のプレビュー">
             <button type="button" class="photo-remove-button" data-photo-remove aria-label="写真{{ i }}を削除">×</button>
           </div>
-          <input class="visually-hidden" type="file" name="images" accept="image/jpeg,image/png,image/webp,image/gif" data-photo-input {% if forloop.first %}id="primary-photo-input"{% endif %}>
+          <input class="visually-hidden" type="file" name="images" data-photo-input {% if forloop.first %}id="primary-photo-input"{% endif %}>
           <input type="hidden" name="captured_at_source" data-captured-at-source value="unknown">
           <label class="field"><span class="field__label">撮影日時（任意）</span><input class="field__input" name="captured_at" type="datetime-local" data-captured-at><small class="field__help">JPEGに撮影日時のEXIF情報がある場合は端末上で自動入力します。読み取れない場合は空欄のまま、不明として保存します。</small></label>
         </article>
