@@ -1,5 +1,5 @@
 {% extends "core/base.html" %}
 {% block title %}プロフィール | 旬間 (SHUNKAN){% endblock %}
 {% block screen_class %}screen--with-nav{% endblock %}
-{% block content %}<header class="page-header page-header--center"><p class="page-header__eyebrow">ACCOUNT</p><h1>プロフィール</h1></header><section class="profile-card" aria-label="ログイン中のアカウント"><div class="profile-avatar" aria-hidden="true">旬</div><h2>{{ request.user.username }}</h2><p>{% if request.user.email %}{{ request.user.email }}{% else %}メールアドレスは未登録です{% endif %}</p><form action="{% url 'logout' %}" method="post">{% csrf_token %}<button class="secondary-button" type="submit">ログアウト</button></form></section>{% endblock %}
+{% block content %}<header class="page-header"><p class="page-header__eyebrow">ACCOUNT</p><h1>プロフィール</h1></header><section class="profile-card" aria-label="ログイン中のアカウント"><div class="profile-avatar" aria-hidden="true">旬</div><h2>{{ request.user.username }}</h2><p>{% if request.user.email %}{{ request.user.email }}{% else %}メールアドレスは未登録です{% endif %}</p><form action="{% url 'logout' %}" method="post">{% csrf_token %}<button class="secondary-button" type="submit">ログアウト</button></form></section>{% endblock %}
 {% block navigation %}{% include "core/includes/bottom_nav.html" %}{% endblock %}

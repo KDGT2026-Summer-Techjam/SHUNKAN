@@ -3,7 +3,7 @@
 {% block title %}今を残す | 旬間 (SHUNKAN){% endblock %}
 {% block screen_class %}screen--with-nav{% endblock %}
 {% block content %}
-<header class="page-header page-header--center">
+<header class="page-header page-header--capture">
   <p class="page-header__eyebrow">{{ room.name }}</p>
   <h1>{% if can_post_reflection and not can_post_moment %}振り返りを残す{% elif can_post_moment %}今を残す{% else %}記録の受付は終了しました{% endif %}</h1>
   <p>{% if can_post_reflection and not can_post_moment %}このRoomでできたことや感じたことを残そう{% elif can_post_moment %}写真から、この瞬間を残そう{% else %}{{ reflection_permission.message }}{% endif %}</p>

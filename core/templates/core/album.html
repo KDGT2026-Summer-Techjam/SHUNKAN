@@ -2,7 +2,7 @@
 {% block title %}アルバム | 旬間 (SHUNKAN){% endblock %}
 {% block screen_class %}screen--with-nav{% endblock %}
 {% block content %}
-<header class="page-header page-header--center"><p class="page-header__eyebrow">{{ room.name }}</p><h1>アルバム</h1><p>このRoomで残した瞬間を振り返ろう。</p></header>
+<header class="page-header"><p class="page-header__eyebrow">{{ room.name }}</p><h1>アルバム</h1><p>このRoomで残した瞬間を振り返ろう。</p></header>
 <section class="summary-card" aria-labelledby="achievement-title"><span class="summary-card__label">ACHIEVEMENT</span><h2 id="achievement-title">{{ completed_count }}/{{ task_count }} 完了</h2><div class="progress"><div class="progress__track"><span style="width:{{ progress_percent }}%"></span></div></div></section>
 <section class="section" aria-labelledby="completed-title"><div class="section-heading"><h2 id="completed-title">できたこと</h2><strong>{{ completed_count }}件</strong></div><div class="task-list">{% for task in completed_tasks %}<article class="task-card task-card--completed"><div class="task-card__status" aria-label="完了">✓</div><div class="task-card__body"><h3>{{ task.title }}</h3><p class="task-card__meta">{% if task.completed_at %}{{ task.completed_at|date:"Y/n/j H:i" }} 完了{% endif %}</p></div></article>{% empty %}<div class="empty-state"><strong>完了したタスクはまだありません</strong></div>{% endfor %}</div></section>
 <section class="section" aria-labelledby="album-title"><div class="section-heading"><h2 id="album-title">SHUNKAN-log</h2><strong>{{ moments|length }}件</strong></div><div class="album-list">
