@@ -14,8 +14,11 @@
   const video = dialog.querySelector("[data-camera-video]");
   const canvas = dialog.querySelector("[data-camera-canvas]");
   const error = dialog.querySelector("[data-camera-error]");
+  const shutter = dialog.querySelector("[data-camera-shutter]");
   let stream = null;
   let activeInput = null;
+  let cameraRequest = 0;
+  let isCapturing = false;
 
   const occupiedCount = () => inputs.filter((input) => input.files.length).length;
   const nextEmptyInput = () => inputs.find((input) => !input.files.length);
@@ -58,7 +61,6 @@
     input.addEventListener("change", () => setPreview(input));
     cards[index].querySelector("[data-photo-remove]").addEventListener("click", () => {
       input.value = "";
-      cards[index].querySelector('[name="captions"]').value = "";
       cards[index].querySelector('[name="captured_at"]').value = "";
       cards[index].querySelector('[name="captured_at_source"]').value = "unknown";
       setPreview(input);
@@ -73,48 +75,86 @@
   taskSelect?.addEventListener("change", syncTaskCompletion);
   syncTaskCompletion();
 
+  const setShutterReady = (ready) => {
+    shutter.disabled = !ready;
+    shutter.textContent = ready ? "この瞬間を撮影" : "カメラを準備中…";
+  };
   const stopCamera = () => {
+    cameraRequest += 1;
     if (stream) stream.getTracks().forEach((track) => track.stop());
     stream = null;
     video.srcObject = null;
+    activeInput = null;
+    isCapturing = false;
+    setShutterReady(false);
+  };
+  const clearError = () => {
+    error.textContent = "";
+    error.hidden = true;
   };
   const showError = (message) => {
-    error.textContent = message;
+    error.textContent = "";
     error.hidden = false;
+    requestAnimationFrame(() => { error.textContent = message; });
   };
 
   form.querySelector("[data-camera-open]").addEventListener("click", async () => {
     activeInput = nextEmptyInput();
     if (!activeInput) return;
-    error.hidden = true;
+    const requestId = ++cameraRequest;
+    clearError();
+    setShutterReady(false);
     dialog.showModal();
     if (!navigator.mediaDevices?.getUserMedia) {
       showError("このブラウザではカメラ撮影を利用できません。端末から写真を選んでください。");
       return;
     }
     try {
-      stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: "environment" } }, audio: false });
+      const requestedStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: "environment" } }, audio: false });
+      if (requestId !== cameraRequest || !dialog.open) {
+        requestedStream.getTracks().forEach((track) => track.stop());
+        return;
+      }
+      stream = requestedStream;
       video.srcObject = stream;
+      await video.play();
+      if (requestId === cameraRequest && dialog.open && video.videoWidth) setShutterReady(true);
     } catch (_) {
-      showError("カメラを開始できませんでした。ブラウザのカメラ権限を確認してください。");
+      if (requestId === cameraRequest && dialog.open) {
+        showError("カメラを開始できませんでした。ブラウザのカメラ権限を確認してください。");
+      }
     }
   });
 
-  dialog.querySelector("[data-camera-shutter]").addEventListener("click", () => {
+  video.addEventListener("loadedmetadata", () => {
+    if (stream && dialog.open && video.videoWidth) setShutterReady(true);
+  });
+
+  shutter.addEventListener("click", () => {
+    if (isCapturing) return;
     if (!stream || !video.videoWidth || !activeInput) {
+      setShutterReady(false);
       showError("カメラの準備ができていません。");
       return;
     }
+    isCapturing = true;
+    shutter.disabled = true;
+    shutter.textContent = "撮影中…";
+    const destinationInput = activeInput;
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
     canvas.getContext("2d").drawImage(video, 0, 0);
     canvas.toBlob((blob) => {
-      if (!blob) return showError("写真を作成できませんでした。もう一度お試しください。");
+      if (!blob) {
+        isCapturing = false;
+        setShutterReady(true);
+        showError("写真を作成できませんでした。もう一度お試しください。");
+        return;
+      }
       const transfer = new DataTransfer();
       transfer.items.add(new File([blob], `shunkan-${Date.now()}.jpg`, { type: "image/jpeg" }));
-      activeInput.files = transfer.files;
-      setPreview(activeInput);
-      stopCamera();
+      destinationInput.files = transfer.files;
+      setPreview(destinationInput);
       dialog.close();
     }, "image/jpeg", 0.9);
   });

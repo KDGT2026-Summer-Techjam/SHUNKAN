@@ -1,6 +1,8 @@
 {% extends "core/base.html" %}
+{% load static %}
 {% block title %}Roomを切り替える | 旬間 (SHUNKAN){% endblock %}
 {% block screen_class %}screen--with-nav room-switcher-screen{% endblock %}
+{% block app_logo %}<div class="app-logo app-logo--rooms"><a href="{% url 'rooms' %}" aria-label="旬間 (SHUNKAN) のRoom一覧"><img src="{% static 'core/images/shunkan-logo.png' %}" alt="旬間 (SHUNKAN)"></a></div>{% endblock %}
 {% block content %}
 <header class="switcher-header">
   <div class="switcher-header__copy">
